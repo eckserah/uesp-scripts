@@ -15,11 +15,12 @@
 import os
 import socket
 import datetime
-from subprocess import call
+import subprocess
 from optparse import OptionParser
 import sys
 import MySQLdb as mdb
 import getpass
+
 
 #
 # Constants
@@ -47,6 +48,7 @@ g_InputArgs = []
 g_DeployParams = []
 g_SourcePath = DEFAULT_SOURCEPATH
 g_LastBackupPath = ""
+g_RevisionNumber = ""
 
 g_DB = None
 
@@ -72,6 +74,7 @@ def CreateDeployTable():
                 destination TEXT NOT NULL,
                 backuppath TEXT NOT NULL,
                 deployfile TEXT NOT NULL,
+                revision TEXT NOT NULL,
                 error TEXT NOT NULL
                 """
     QueryStr = HeaderStr + TableDef + ");"
@@ -100,6 +103,23 @@ def CloseDatabase():
     return True
 
 
+def GetRevisionNumber():
+    global g_SourcePath
+    
+    os.chdir(os.path.abspath(g_SourcePath))
+    
+    Cmd = ["hg", "id", "--id", "-r ."]
+    RevNum = subprocess.Popen(Cmd, stdout=subprocess.PIPE).communicate()[0].rstrip()
+    
+    try:
+        Test = int(RevNum, 16)
+    except ValueError:
+        RevNum = ""
+    
+    if (GetVerboseLevel()): print "Got '{0}' for the revision number".format(RevNum)
+    return RevNum
+
+
 def AddDeployLog(destination, error=""):
     OptionStr = g_DB.escape_string(', '.join('%s=%s' % (k,v) for k,v in vars(g_InputOptions).items()))
     SourcePath = g_DB.escape_string(os.path.abspath(g_SourcePath))
@@ -109,8 +129,8 @@ def AddDeployLog(destination, error=""):
     with open (g_InputOptions.deployfile, "r") as myfile:
         DeployFile = g_DB.escape_string(myfile.read())
     
-    HeaderStr = "INSERT INTO {0}.{1} (username, appname, options, source, destination, backuppath, error, deployfile) ".format(DB_DATABASE, DB_TABLE)
-    ValueStr = "VALUES ('{0}', '{1}', \"{2}\", '{3}', '{4}', '{5}', '{6}', '{7}');".format(
+    HeaderStr = "INSERT INTO {0}.{1} (username, appname, options, source, destination, backuppath, error, deployfile, revision) ".format(DB_DATABASE, DB_TABLE)
+    ValueStr = "VALUES ('{0}', '{1}', \"{2}\", '{3}', '{4}', '{5}', '{6}', '{7}', '{8}');".format(
                                                                                     g_DB.escape_string(getpass.getuser()),
                                                                                     g_DB.escape_string(GetDeployParamValue("name")),
                                                                                     OptionStr,
@@ -118,7 +138,8 @@ def AddDeployLog(destination, error=""):
                                                                                     DestPath,
                                                                                     BackupPath,
                                                                                     g_DB.escape_string(error),
-                                                                                    DeployFile) 
+                                                                                    DeployFile,
+                                                                                    g_DB.escape_string(g_RevisionNumber)) 
     QueryStr = HeaderStr + ValueStr
     
     if (GetVerboseLevel() >= 2): print "\tAdding deploy log database row:\n\t\t{0}".format(QueryStr)
@@ -267,7 +288,7 @@ def CreateBackup(destination):
         os.makedirs(BackupPath)
 
     RsyncCmd = CreateRsyncCommand(destination, BackupPath)
-    Result = call(RsyncCmd)
+    Result = subprocess.call(RsyncCmd)
     if (Result != 0): return False
         
     return True
@@ -275,7 +296,7 @@ def CreateBackup(destination):
 
 def DeployFiles(destination):
     RsyncCmd = CreateRsyncCommand(g_SourcePath, destination)
-    Result = call(RsyncCmd)
+    Result = subprocess.call(RsyncCmd)
     if (Result != 0): return False
     return True
 
@@ -349,9 +370,10 @@ if (GetVerboseLevel()):
 LoadSecrets()
 InitDatabase()
 
-
 g_SourcePath = GetSourcePath()
 print "Installing from local path '{0}'".format(g_SourcePath)
+
+g_RevisionNumber = GetRevisionNumber()
 
 DoDeploy()
 
