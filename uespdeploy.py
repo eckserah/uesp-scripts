@@ -59,7 +59,7 @@ def LoadSecrets():
 
 
 def CreateDeployTable():
-    if (IsVerbose()): print "Creating table {0}.{1}".format(DB_DATABASE, DB_TABLE)
+    if (GetVerboseLevel()): print "Creating table {0}.{1}".format(DB_DATABASE, DB_TABLE)
     
     HeaderStr = "CREATE TABLE {0}.{1} (".format(DB_DATABASE, DB_TABLE);
     TableDef = """
@@ -75,7 +75,7 @@ def CreateDeployTable():
                 error TEXT NOT NULL
                 """
     QueryStr = HeaderStr + TableDef + ");"
-    if (IsVerbose()): print "\t{0}".format(QueryStr)
+    if (GetVerboseLevel() >= 2): print "\t{0}".format(QueryStr)
     g_DB.query(QueryStr)
     return True
 
@@ -83,15 +83,14 @@ def CreateDeployTable():
 def InitDatabase():
     global g_DB
     
-    if (IsVerbose()): print "Trying to connect to MySQL database {0} on {1}:{2} as {3}".format(DB_DATABASE, DB_SERVER, DB_PORT, DB_USER)
+    if (GetVerboseLevel()): print "Trying to connect to MySQL database {0} on {1}:{2} as {3}".format(DB_DATABASE, DB_SERVER, DB_PORT, DB_USER)
     g_DB = mdb.connect(host=DB_SERVER, user=DB_USER, passwd=DB_PASSWORD, db=DB_DATABASE, port=DB_PORT)
     
     QueryStr = "SELECT * FROM information_schema.tables WHERE table_schema='{0}' AND table_name='{1}' LIMIT 1;".format(DB_DATABASE, DB_TABLE)
     g_DB.query(QueryStr)
     Results = g_DB.store_result()
     
-    if (Results.num_rows() <= 0):
-        CreateDeployTable()
+    if (Results.num_rows() <= 0): CreateDeployTable()
 
     return True
 
@@ -119,7 +118,7 @@ def AddDeployLog(destination, error=""):
                                                                                     DeployFile) 
     QueryStr = HeaderStr + ValueStr
     
-    if (IsVerbose()): print "\tAdding deploy log database row:\n\t\t{0}".format(QueryStr)
+    if (GetVerboseLevel() >= 2): print "\tAdding deploy log database row:\n\t\t{0}".format(QueryStr)
     
     g_DB.query(QueryStr)
     
@@ -128,7 +127,7 @@ def AddDeployLog(destination, error=""):
 
 def ParseInputArgs():
     parser = OptionParser()
-    parser.add_option("-v", "--verbose",    action="store_true",    dest="verbose",     help="increase output verbosity")
+    parser.add_option("-v", "--verbosity",  action="count",         dest="verbose",     help="increase output verbosity")
     parser.add_option("-s", "--source",     action="store",         dest="source",      help="path to the source being deployed (defaults to the current local directory)", type="string", default=DEFAULT_SOURCEPATH)
     parser.add_option("-d", "--destination",action="store",         dest="destination", help="destination path for the installation", type="string")
     parser.add_option("-f", "--file",       action="store",         dest="deployfile",  help="use the specified deployment file instead of uesp.deploy", type="string", default=DEFAULT_DEPLOY)
@@ -160,13 +159,16 @@ def GetHostName():
     return socket.gethostname()
 
 
-def IsVerbose():
+def GetVerboseLevel():
     global g_InputOptions
     
-    if (GetDeployParamValue("verbose").lower() == "true"): return True
-    if (g_InputOptions.verbose): return True
-
-    return False
+    if (g_InputOptions.verbose):
+        return int(g_InputOptions.verbose)
+    
+    Verbose = GetDeployParamValue("verbosity")
+    
+    if (Verbose): 
+        return int(Verbose)
 
 
 def IsBackup():
@@ -224,16 +226,16 @@ def LoadDeployFile(filename):
         value = value.strip()
         g_DeployParams.append((variable, value))
         
-        if (IsVerbose()): print "\t{0} = {1}".format(variable, value)        
+        if (GetVerboseLevel() >= 2): print "\t{0} = {1}".format(variable, value)        
 
-    if (IsVerbose()): print "\tFound and parsed {0} parameters".format(len(g_DeployParams))
+    if (GetVerboseLevel()): print "\tFound and parsed {0} parameters".format(len(g_DeployParams))
 
 
 def CreateRsyncCommand(source, dest, optargs=[]):
     Cmd = ["rsync", "-azIm", "--delete-excluded"]
     Cmd += optargs
 
-    if (IsVerbose()): Cmd.append("-v")
+    if (GetVerboseLevel()): Cmd.append("-v")
 
     IgnoreFiles = GetDeployParam("ignore")
 
@@ -245,7 +247,7 @@ def CreateRsyncCommand(source, dest, optargs=[]):
     Cmd.append(source)
     Cmd.append(dest)
 
-    if (IsVerbose()): print "\trsync cmd: {0}".format(Cmd)
+    if (GetVerboseLevel()): print "\trsync cmd: {0}".format(Cmd)
     return Cmd
 
 
@@ -255,7 +257,7 @@ def CreateBackup(destination):
     print "\tCreating backup of existing source in '{0}'...".format(destination)
     BackupPath = GetBackupPath()
     BackupPath += "{0}_{1}_{2}/".format(GetDeployParamValue("name"), ExtractServerName(destination), datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    if (IsVerbose()): print "\tBacking up files to '{0}'...".format(BackupPath)
+    if (GetVerboseLevel()): print "\tBacking up files to '{0}'...".format(BackupPath)
     g_LastBackupPath = BackupPath
 
     if not os.path.exists(BackupPath):
@@ -285,7 +287,7 @@ def DeployDeleteFiles(destination):
 
             # TODO: Fails for remote files
         if (os.path.exists(filename)):
-            if (IsVerbose()):
+            if (GetVerboseLevel()):
                 print "\tDeleting file '{0}' from destination.".format(filename)
             os.remove(filename)
 
@@ -338,7 +340,7 @@ def DoDeploy():
 (g_InputOptions, g_InputArgs) = ParseInputArgs()
 LoadDeployFile(g_InputOptions.deployfile)
 
-if (IsVerbose()):
+if (GetVerboseLevel()):
     print "Local hostname is '{0}'".format(GetHostName())
 
 LoadSecrets()
