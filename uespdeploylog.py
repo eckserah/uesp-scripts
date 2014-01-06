@@ -1,0 +1,125 @@
+#!/usr/bin/python26
+#
+# uespdeploylog.py
+#   by Dave Humphrey (dave@uesp.net), created on 6 Jan 2014
+#
+# A very simple script that displays the log of deployments as created
+# by the uespdeploy.py script.
+#
+
+import os
+import socket
+import datetime
+from subprocess import call
+from optparse import OptionParser
+import sys
+import MySQLdb as mdb
+
+
+#
+# Constants
+#
+DEFAULT_RECORDCOUNT = -1
+
+SECRETS_FILE = "/home/uesp/secrets/uespdeploy.secrets"
+
+DB_SERVER = "content3.uesp.net"
+DB_PORT = 3306
+DB_DATABASE = "uesp_deploy"
+DB_TABLE = "deploylog"
+
+    # The following two will be set within the external secrets file loaded at run time
+DB_USER = ""
+DB_PASSWORD = ""
+
+#
+# Global variables
+#
+g_InputOptions = []
+g_InputArgs = []
+
+g_DB = None
+
+
+def LoadSecrets():
+    fp = open(SECRETS_FILE)
+    secrets = fp.read()
+    fp.close()
+    exec(secrets) in globals()
+
+
+def InitDatabase():
+    global g_DB
+    
+    g_DB = mdb.connect(host=DB_SERVER, user=DB_USER, passwd=DB_PASSWORD, db=DB_DATABASE, port=DB_PORT)
+    
+    QueryStr = "SELECT * FROM information_schema.tables WHERE table_schema='{0}' AND table_name='{1}' LIMIT 1;".format(DB_DATABASE, DB_TABLE)
+    g_DB.query(QueryStr)
+    Results = g_DB.store_result()
+    
+    if (Results.num_rows() <= 0):
+        print "ERROR: The table {0}.{1} does not exist!".format(DB_DATABASE, DB_TABLE)
+        g_DB.close()
+        return False
+
+    return True
+
+
+def CloseDatabase():
+    if (g_DB): g_DB.close()
+    return True
+
+
+def ParseInputArgs():
+    parser = OptionParser()
+    parser.add_option("-c", "--count",     action="store",         dest="count",      help="number of log records to display", type="int", default=-1)
+    return parser.parse_args()
+
+
+def GetDisplayCount():
+    global g_InputOptions
+    
+    if (g_InputOptions.count):
+        return int(g_InputOptions.count)
+    
+    return DEFAULT_RECORDCOUNT
+
+
+def DisplayDeployLog():
+    DisplayCount = GetDisplayCount()
+    if (DisplayCount < 0): DisplayCount = 0
+    
+    QueryStr = "SELECT timestamp, username, appname, source, destination, error, backuppath FROM {0}.{1} ORDER BY timestamp ASC;".format(DB_DATABASE, DB_TABLE)
+    
+    g_DB.query(QueryStr)
+    Results = g_DB.store_result()
+    
+    if (Results.num_rows() <= 0):
+        print "No rows found in deployment log!"
+        return False
+    
+    Records = Results.fetch_row(how=1, maxrows=0)
+    RowCount = 0
+    PrintCount = 0
+    
+    for row in Records:
+        RowCount += 1
+        if (DisplayCount > 0 and RowCount <= (Results.num_rows()-DisplayCount)): continue
+        print "{0}, {1}, {2}, {3}, {4}, {5}, {6}".format(row["timestamp"], row["username"], row["appname"], row["source"], row["destination"], "failed" if row["error"] else "success", row["backuppath"])
+        PrintCount += 1
+    
+    print "Displayed {0} of {1} rows from deployment log.".format(PrintCount, Results.num_rows())
+    return True
+    
+
+#
+# Begin Main Program
+#
+(g_InputOptions, g_InputArgs) = ParseInputArgs()
+
+LoadSecrets()
+if (not InitDatabase()): sys.exit()
+
+DisplayDeployLog()
+
+CloseDatabase()
