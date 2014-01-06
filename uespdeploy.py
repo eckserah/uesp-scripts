@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python26
 #
 # uespdeploy.py
 #   by Dave Humphrey (dave@uesp.net), created on 5 Jan 2014
@@ -18,7 +18,7 @@ import datetime
 from subprocess import call
 from optparse import OptionParser
 import sys
-import MySQLdb
+# import MySQLdb
 
 #
 # Constants
