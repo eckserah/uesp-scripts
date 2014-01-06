@@ -18,7 +18,8 @@ import datetime
 from subprocess import call
 from optparse import OptionParser
 import sys
-# import MySQLdb
+import MySQLdb as mdb
+import getpass
 
 #
 # Constants
@@ -29,9 +30,10 @@ DEFAULT_SOURCEPATH = "./"
 DEFAULT_BACKUPPATH = "/tmp/"
 COMMENT_CHAR = '#'
 
-DB_SERVER = "db1.uesp.net"
+DB_SERVER = "content3.uesp.net"
 DB_PORT = 3306
 DB_DATABASE = "uesp_deploy"
+DB_TABLE = "deploylog"
 
     # The following two will be set within the external secrets file loaded at run time
 DB_USER = ""
@@ -40,10 +42,13 @@ DB_PASSWORD = ""
 #
 # Global variables
 #
-g_InputOptions = ()
-g_InputArgs = ()
+g_InputOptions = []
+g_InputArgs = []
 g_DeployParams = []
 g_SourcePath = DEFAULT_SOURCEPATH
+g_LastBackupPath = ""
+
+g_DB = None
 
 
 def LoadSecrets():
@@ -53,7 +58,71 @@ def LoadSecrets():
     exec(secrets) in globals()
 
 
+def CreateDeployTable():
+    if (IsVerbose()): print "Creating table {0}.{1}".format(DB_DATABASE, DB_TABLE)
+    
+    HeaderStr = "CREATE TABLE {0}.{1} (".format(DB_DATABASE, DB_TABLE);
+    TableDef = """
+                id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(64) NOT NULL,
+                timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+                appname VARCHAR(64) NOT NULL,
+                options TEXT NOT NULL,
+                source TEXT NOT NULL,
+                destination TEXT NOT NULL,
+                backuppath TEXT NOT NULL,
+                deployfile TEXT NOT NULL,
+                error TEXT NOT NULL
+                """
+    QueryStr = HeaderStr + TableDef + ");"
+    if (IsVerbose()): print "\t{0}".format(QueryStr)
+    g_DB.query(QueryStr)
+    return True
+
+
 def InitDatabase():
+    global g_DB
+    
+    if (IsVerbose()): print "Trying to connect to MySQL database {0} on {1}:{2} as {3}".format(DB_DATABASE, DB_SERVER, DB_PORT, DB_USER)
+    g_DB = mdb.connect(host=DB_SERVER, user=DB_USER, passwd=DB_PASSWORD, db=DB_DATABASE, port=DB_PORT)
+    
+    QueryStr = "SELECT * FROM information_schema.tables WHERE table_schema='{0}' AND table_name='{1}' LIMIT 1;".format(DB_DATABASE, DB_TABLE)
+    g_DB.query(QueryStr)
+    Results = g_DB.store_result()
+    
+    if (Results.num_rows() <= 0):
+        CreateDeployTable()
+
+    return True
+
+
+def CloseDatabase():
+    if (g_DB): g_DB.close()
+    return True
+
+
+def AddDeployLog(destination, error=""):
+    OptionStr = g_DB.escape_string(', '.join('%s=%s' % (k,v) for k,v in vars(g_InputOptions).items()))
+    
+    with open (g_InputOptions.deployfile, "r") as myfile:
+        DeployFile = g_DB.escape_string(myfile.read())
+    
+    HeaderStr = "INSERT INTO {0}.{1} (username, appname, options, source, destination, backuppath, error, deployfile) ".format(DB_DATABASE, DB_TABLE)
+    ValueStr = "VALUES ('{0}', '{1}', \"{2}\", '{3}', '{4}', '{5}', '{6}', '{7}');".format(
+                                                                                    g_DB.escape_string(getpass.getuser()),
+                                                                                    g_DB.escape_string(GetDeployParamValue("name")),
+                                                                                    OptionStr,
+                                                                                    g_DB.escape_string(g_SourcePath),
+                                                                                    g_DB.escape_string(destination),
+                                                                                    g_DB.escape_string(g_LastBackupPath),
+                                                                                    g_DB.escape_string(error),
+                                                                                    DeployFile) 
+    QueryStr = HeaderStr + ValueStr
+    
+    if (IsVerbose()): print "\tAdding deploy log database row:\n\t\t{0}".format(QueryStr)
+    
+    g_DB.query(QueryStr)
+    
     return True
 
 
@@ -124,7 +193,7 @@ def GetBackupPath():
         return BackupPath
     
     return DEFAULT_BACKUPPATH
-    
+
 
 def GetSourcePath():
     SourcePath = g_InputOptions.source
@@ -137,7 +206,7 @@ def ExtractServerName(path):
     if (len(TmpSplit) == 1): return "localhost";
     return TmpSplit[0]
 
-    
+
 def LoadDeployFile(filename):
     global g_DeployParams
     print "Loading deploy file '{0}'...".format(filename)
@@ -181,10 +250,13 @@ def CreateRsyncCommand(source, dest, optargs=[]):
 
 
 def CreateBackup(destination):
+    global g_LastBackupPath
+    
     print "\tCreating backup of existing source in '{0}'...".format(destination)
     BackupPath = GetBackupPath()
     BackupPath += "{0}_{1}_{2}/".format(GetDeployParamValue("name"), ExtractServerName(destination), datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     if (IsVerbose()): print "\tBacking up files to '{0}'...".format(BackupPath)
+    g_LastBackupPath = BackupPath
 
     if not os.path.exists(BackupPath):
         os.makedirs(BackupPath)
@@ -218,7 +290,7 @@ def DeployDeleteFiles(destination):
             os.remove(filename)
 
     return True
-    
+
 
 def DoOneDeploy(destination):
     print "Deploying to '{0}'...".format(destination)
@@ -236,8 +308,9 @@ def DoOneDeploy(destination):
         print "\tError deleting files from deployment path!"
         return False
 
+    AddDeployLog(destination)
     print "\tSuccessfully completed deployment!"
-    
+
     return True
 
 
@@ -262,16 +335,19 @@ def DoDeploy():
 #
 # Begin Main Program
 #
-
-LoadSecrets()
-    
 (g_InputOptions, g_InputArgs) = ParseInputArgs()
 LoadDeployFile(g_InputOptions.deployfile)
 
 if (IsVerbose()):
     print "Local hostname is '{0}'".format(GetHostName())
 
+LoadSecrets()
+InitDatabase()
+
+
 g_SourcePath = GetSourcePath()
 print "Installing from local path '{0}'".format(g_SourcePath)
 
 DoDeploy()
+
+CloseDatabase()
