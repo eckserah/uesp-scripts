@@ -120,6 +120,12 @@ def GetRevisionNumber():
     return RevNum
 
 
+def DisplayError(destination, errormsg):
+    print errormsg
+    AddDeployLog(destination, errormsg)
+    return False
+
+
 def AddDeployLog(destination, error=""):
     OptionStr = g_DB.escape_string(', '.join('%s=%s' % (k,v) for k,v in vars(g_InputOptions).items()))
     SourcePath = g_DB.escape_string(os.path.abspath(g_SourcePath))
@@ -323,15 +329,15 @@ def DoOneDeploy(destination):
 
     if (IsBackup()):
         if (not CreateBackup(destination)):
-            print "\tBackup failed...aborting deployment!"
+            DisplayError(destination, "Backup failed...aborting deployment!")
             return False
 
     if (not DeployFiles(destination)):
-        print "\tError copying files with rsync...aborting deployment!"
+        DisplayError(destination, "Error copying files with rsync...aborting deployment!")
         return False
 
     if (not DeployDeleteFiles(destination)):
-        print "\tError deleting files from deployment path!"
+        DisplayError(destination, "Error deleting files from deployment path!")
         return False
 
     AddDeployLog(destination)
