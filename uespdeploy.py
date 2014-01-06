@@ -130,7 +130,11 @@ def AddDeployLog(destination, error=""):
     OptionStr = g_DB.escape_string(', '.join('%s=%s' % (k,v) for k,v in vars(g_InputOptions).items()))
     SourcePath = g_DB.escape_string(os.path.abspath(g_SourcePath))
     DestPath = g_DB.escape_string(os.path.abspath(destination))
-    BackupPath = g_DB.escape_string(os.path.abspath(g_LastBackupPath))
+    
+    if (not IsBackup()):
+        BackupPath = ""
+    else:
+        BackupPath = g_DB.escape_string(os.path.abspath(g_LastBackupPath))
     
     with open (g_InputOptions.deployfile, "r") as myfile:
         DeployFile = g_DB.escape_string(myfile.read())
