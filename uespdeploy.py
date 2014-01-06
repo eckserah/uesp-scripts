@@ -129,7 +129,7 @@ def DisplayError(destination, errormsg):
 def AddDeployLog(destination, error=""):
     OptionStr = g_DB.escape_string(', '.join('%s=%s' % (k,v) for k,v in vars(g_InputOptions).items()))
     SourcePath = g_DB.escape_string(os.path.abspath(g_SourcePath))
-    DestPath = g_DB.escape_string(os.path.abspath(destination))
+    DestPath = g_DB.escape_string(destination)
     
     if (not IsBackup()):
         BackupPath = ""
@@ -324,6 +324,7 @@ def DeployDeleteFiles(destination):
             if (GetVerboseLevel()):
                 print "\tDeleting file '{0}' from destination.".format(filename)
             os.remove(filename)
+            #ssh username@domain.com 'rm /some/where/some_file.war'
 
     return True
 
