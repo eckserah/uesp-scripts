@@ -1,0 +1,20 @@
+	UESP Scripts Collection
+	======================
+	by Dave Humphrey (dave@uesp.net)
+	Created on 6 Jan 2014
+	Released under the GPL v2
+	
+This is a collection of various small scripts used in the setup and administration
+of the UESP.net web site.
+
+NOTE: Use these scripts at your own discretion! They are specifically designed for 
+use within the custom environment of the UESP servers and may not work correctly
+in other environments.
+
+
+Script Descriptions
+-------------------
+Basic description of scripts are below. For more information see the header block
+in each script file.
+
+	uespdeploy.py -- Used for deploying various software on the UESP servers.
