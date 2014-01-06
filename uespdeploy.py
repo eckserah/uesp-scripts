@@ -102,6 +102,9 @@ def CloseDatabase():
 
 def AddDeployLog(destination, error=""):
     OptionStr = g_DB.escape_string(', '.join('%s=%s' % (k,v) for k,v in vars(g_InputOptions).items()))
+    SourcePath = g_DB.escape_string(os.path.abspath(g_SourcePath))
+    DestPath = g_DB.escape_string(os.path.abspath(destination))
+    BackupPath = g_DB.escape_string(os.path.abspath(g_LastBackupPath))
     
     with open (g_InputOptions.deployfile, "r") as myfile:
         DeployFile = g_DB.escape_string(myfile.read())
@@ -111,9 +114,9 @@ def AddDeployLog(destination, error=""):
                                                                                     g_DB.escape_string(getpass.getuser()),
                                                                                     g_DB.escape_string(GetDeployParamValue("name")),
                                                                                     OptionStr,
-                                                                                    g_DB.escape_string(g_SourcePath),
-                                                                                    g_DB.escape_string(destination),
-                                                                                    g_DB.escape_string(g_LastBackupPath),
+                                                                                    SourcePath,
+                                                                                    DestPath,
+                                                                                    BackupPath,
                                                                                     g_DB.escape_string(error),
                                                                                     DeployFile) 
     QueryStr = HeaderStr + ValueStr
