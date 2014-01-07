@@ -121,6 +121,30 @@ def GetRevisionNumber():
     return RevNum
 
 
+def CompareSourceDestPaths(source, dest):
+    SourceServer = ExtractServerName(source)
+    DestServer   = ExtractServerName(dest)
+    SourcePath   = ExtractFileName(source)
+    DestPath     = ExtractFileName(dest)
+    
+    if (not SourceServer or SourceServer == "localhost" or SourceServer == "127.0.0.1"): 
+        SourceServer = g_HostName
+        SourcePath = os.path.abspath(SourcePath)
+        
+    if (not DestServer or DestServer == "localhost" or DestServer == "127.0.0.1"):
+        DestServer = g_HostName
+        DestPath = os.path.abspath(DestPath)
+
+    if (not SourcePath.endswith("/")): SourcePath += "/"
+    if (not DestPath.endswith("/")):   DestPath += "/"
+    
+    if (SourceServer.lower() != DestServer.lower()): return False
+    if (SourcePath != DestPath): return False
+    
+    if (GetVerboseLevel() > 1): print "\tCompareSourceDestPaths( {0}, {1} )".format(source, dest)
+    return True
+
+
 def DisplayError(destination, errormsg):
     print errormsg
     AddDeployLog(destination, errormsg)
@@ -513,6 +537,10 @@ def DoOneDeploy(destination):
         if (not MatchServerName(g_InputOptions.serveronly, ServerName)):
             if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
             return True
+        
+    if (CompareSourceDestPaths(g_SourcePath, destination)):
+        print "\tWarning: The source and destination paths are the same...skipping deployment!"
+        return True
         
     print "Deploying to '{0}'...".format(destination)
     g_DeployCount += 1
