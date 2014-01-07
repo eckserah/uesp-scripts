@@ -316,7 +316,7 @@ def LoadDeployFile(filename):
 
 
 def CreateRsyncCommand(source, dest, optargs=[]):
-    Cmd = ["rsync", "-azIm", "--delete-excluded"]
+    Cmd = ["rsync", "-azIm"]
     Cmd += optargs
 
     if (GetVerboseLevel() > 1): Cmd.append("-v")
