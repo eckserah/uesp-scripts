@@ -27,3 +27,7 @@ chown_source = :uespadmin -R *
 # Set the ownership of the destination directory 
 chown_dest = :uespadmin {dest}
 
+
+delete_dest = uespdeploy.py
+delete_dest = uespdeploylog.py
+
