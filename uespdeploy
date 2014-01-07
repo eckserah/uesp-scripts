@@ -141,6 +141,11 @@ def CompareSourceDestPaths(source, dest):
     if (SourceServer.lower() != DestServer.lower()): return False
     if (SourcePath != DestPath): return False
     
+    try:
+        if (not os.path.samefile(SourcePath, DestPath)): return False
+    except:
+        return False
+    
     if (GetVerboseLevel() > 1): print "\tCompareSourceDestPaths( {0}, {1} )".format(source, dest)
     return True
 
