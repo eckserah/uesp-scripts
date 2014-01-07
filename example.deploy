@@ -48,7 +48,9 @@ backup = false
 
 #
 # backuppath = path
-#
+#	The path to save backups to if required. By default this is /tmp/ and each
+#	backup saved there will be under a unique path name using the name of the
+#	deployment source and the current timestamp.
 #
 backuppath = /tmp/
 
