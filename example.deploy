@@ -1,0 +1,140 @@
+#
+# This is a reference and example of a .deploy file used by the uespdeploy.py
+# script. It contains information used to deploy/install a source path to
+# one or more destinations on a local or remote server. 
+#
+# By default uespdeploy.py looks for the uesp.deploy file in the current
+# directory unless this is overridden by a manually specified file.
+#
+# Comments
+#	Anything after the first '#' on a line is ignored. 
+#
+# Case Sensitivity
+#	The variable name on the left of the '=' is case insensitive but the
+#	value on the right may be case sensitive depending on the particular data.
+#
+# Command Line Override
+#	Some of the values contained in a .deploy file can be overriden by
+#	command line parameters specified to uespdeploy.py.
+#
+
+#
+# name = value
+#	Specifies a short name identifying the source being deployed. This can
+#	the repository name but doesn't have to be.
+#
+name = uesp.scripts
+
+#
+# description = value
+#	A longer description of the source being installed.
+#
+description = Collection of various scripts used by the UESP
+
+#
+# repository = url
+#	A link to the hg remote repository. This is required if a clean install
+#	or clone of the repository needs to be performed.
+#
+repository = https://code.google.com/p/uesp.scripts/
+
+#
+# backup = true | false
+#	A boolean value indicating whether a backup of the original destination
+#	files should be performed. Default value is false and this can be overridden
+#	by the command line parameters.
+#
+backup = false
+
+#
+# backuppath = path
+#
+#
+backuppath = /tmp/
+
+#
+# verbosity = integer
+#	A number from 0 to 3 indicating how much information to output to stdout.
+#	The larger the number the more that is displayed. Typically a value of 0
+#	or 1 is useful for general operation and 2 or 3 for debugging.
+#
+verbosity = 0
+
+#
+# ignore = filespec
+#	You can have multiple ignore line which specifies a file or files to ignore
+#	when copying the source to the destination. This is simply a file specification
+#	which will be relative to the source path. The usual shell wildcards of * and
+#	? are supported. 
+#
+ignore = *.deploy
+ignore = .hg*
+
+#
+# dest = path
+# dest = servername:/path
+#	There will be one or more dest lines to specify a deployment destination. This
+#	can be a local absolute path or a remote path including server name. Generally
+#	the full remote path is preferred as the source may be deployed from multiple
+#	locations on different servers. The destination path will be created if it does
+#	not exist.
+#
+dest = content1.uesp.net:/home/uesp/scripts/
+dest = content2.uesp.net:/home/uesp/scripts/
+dest = content3.uesp.net:/home/uesp/scripts/
+dest = /home/uesp/scripts/
+
+#
+# chown_source = chown params 
+#	This command simply takes the same parameters as the 'chown' shell command to
+#	change the ownership of files/directories in the source path before deployment.
+#	Generally you wish to change the ownership of all files to :uespadmin to ensure
+#	all admin users can edit or update the deployment in the future. Multiple lines 
+#	of this command are permitted.
+#
+chown_source = :uespadmin -R *
+chown_source = :uespadmin somefile.txt
+
+#
+# chown_dest = chown params
+#	This is nearly identical to the chown_source command except it takes 'chown'
+#	commands to change the ownership of files on each destination. The value of
+#	'{dest}' is replaced with the destination path.
+#
+chown_dest = :uespadmin {dest}somefile.txt
+chown_dest = :uespadmin {dest}	# Change the ownership of the root path
+
+#
+# delete_dest = filespec
+#	Deletes specific files from each destination as given by the file specification.
+#	This is used to delete old and unused files from an existing installation.
+#	Nothing happens if the file does not exist.
+#
+#	Note that the deletion is not recursive and care should be taken to not delete
+#	something you shouldn't or anything outside of the destination path.
+#
+delete_dest = test/tmp.txt
+delete_dest = *.log
+
+#
+# manualcopy = servername: {source}filename1 {dest}filename2
+#	Manually copies files from the source to the destination after the initial
+#	deployment. Only copies files where "servername" matches the destination
+#	server (short servername names can be used so that 'content1' will match
+#	'content1.uesp.net'). The values of {source} and {dest} will be replaced
+#	by the source and destination paths respectively. If servername is 'all'
+#	the file will be copied to all destinations.
+#
+#	Note that the filename can be changed from the source to the destination
+#	if specified. This permits non-identical deployments depending on the
+#	server.
+#
+manualcopy = content1: {source}LocalSettings.php.content1 {dest}LocalSettings.php
+manualcopy = content2: {source}LocalSettings.php.content2 {dest}LocalSettings.php
+manualcopy = content3: {source}LocalSettings.php.content3 {dest}LocalSettings.php
+
+manualcopy = all: {source}config.php.example {dest}config.php
+
+manualcopy = content3: {source}path/somefile.txt {dest}  # Keep the same filename on dest
+manualcopy = content3: {source}path/subpath/* {dest}
+
