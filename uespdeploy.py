@@ -275,7 +275,7 @@ def CreateRsyncCommand(source, dest, optargs=[]):
     Cmd = ["rsync", "-azIm", "--delete-excluded"]
     Cmd += optargs
 
-    if (GetVerboseLevel()): Cmd.append("-v")
+    if (GetVerboseLevel() > 1): Cmd.append("-v")
 
     IgnoreFiles = GetDeployParam("ignore")
 
@@ -287,7 +287,7 @@ def CreateRsyncCommand(source, dest, optargs=[]):
     Cmd.append(source)
     Cmd.append(dest)
 
-    if (GetVerboseLevel()): print "\trsync cmd: {0}".format(Cmd)
+    if (GetVerboseLevel() > 1): print "\trsync cmd: {0}".format(Cmd)
     return Cmd
 
 
@@ -388,12 +388,39 @@ def DeployDeleteFiles(destination):
     return True
 
 
+def DoChangeOwnership(chowncmd):
+    Cmd = "chown " + chowncmd
+    if (GetVerboseLevel() > 1): print "\tChown Command: {0}".format(Cmd)
+    
+    childproc = subprocess.Popen(Cmd, shell=True)
+    childproc.communicate()
+    
+    Result = childproc.returncode
+    if (Result != 0): return False
+    
+    return True
+
+
+def ChangeSourceOwnership():
+    ChownSources = GetDeployParam("chown_source")
+    
+    if (GetVerboseLevel() > 0 and len(ChownSources) > 0):
+        print "Changing source ownership on {0} entries.".format(len(ChownSources))
+
+    for chownsource in ChownSources:
+        if (len(chownsource) > 1):
+            Result = DoChangeOwnership(chownsource[1])
+            if (not Result): return False
+
+    return True
+
+
 def DoOneDeploy(destination):
     print "Deploying to '{0}'...".format(destination)
 
     if (IsBackup()):
         if (not CreateBackup(destination)):
-            DisplayError(destination, "Backup failed...aborting deployment!")
+            DisplayError(destination, "Error: Backup failed...aborting deployment!")
             return False
 
     if (not DeployFiles(destination)):
@@ -411,6 +438,10 @@ def DoOneDeploy(destination):
 
 
 def DoDeploy():
+    
+    if (not ChangeSourceOwnership()):
+        DisplayError(destination, "Error changing ownership of source files...aborting deployment!")
+        return False
     
     if (g_InputOptions.destination):
         return DoOneDeploy(g_InputOptions.destination)
