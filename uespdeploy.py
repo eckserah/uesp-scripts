@@ -339,7 +339,6 @@ def DoMakePath(path):
         
         ssh = subprocess.Popen(["ssh", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
-        
         error = ssh.stderr.readlines()
         
         if error != []:
@@ -431,24 +430,52 @@ def ChangeSourceOwnership():
 
 
 def MatchServerName(HostName, ServerName):
-    return ServerName.lower().startswith(HostName.lower())
+    TmpHostName = HostName.lower();
+    if (TmpHostName == "localhost" or TmpHostName == "127.0.0.1"): TmpHostName = g_HostName
+    return ServerName.lower().startswith(TmpHostName)
+
+
+def DeployManualCopy(destination):
+    
+    ManualCopyCmds = GetDeployParam("manualcopy")
+    ServerName = ExtractServerName(destination)
+    
+    for manualcopycmd in ManualCopyCmds:
+        if (len(manualcopycmd) <= 1): continue
+        copycmd = manualcopycmd[1]
+        
+        cmdresult = copycmd.split(':', 1)
+        if (len(cmdresult) <= 1): continue
+        
+        if (not MatchServerName(cmdresult[0], ServerName)): continue
+        
+        BaseCmd = cmdresult[1].replace("{source}", g_SourcePath).replace("{dest}", destination).strip()
+        if (GetVerboseLevel() > 0): print "\tManually copying file: {0}".format(BaseCmd)
+        
+        ScpCmd = "scp -pq "
+        if (GetVerboseLevel() > 2): ScpCmd += "-v "
+        ScpCmd += BaseCmd
+        if (GetVerboseLevel() > 1): print "\tRunning scp command: {0}".format(ScpCmd)
+        
+        childproc = subprocess.Popen(ScpCmd, shell=True)
+        childproc.communicate()
+        Result = childproc.returncode
+        if (Result != 0): return False
+
+    return True
 
 
 def DoOneDeploy(destination):
     global g_DeployCount
     
+    ServerName = ExtractServerName(destination)
+    
     if (IsLocalOnly()):
-        ServerName = ExtractServerName(destination)
-        
         if (not MatchServerName(g_HostName, ServerName)):
             if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
             return True
     elif (IsServerOnly()):
-        ServerName   = ExtractServerName(destination)
-        SourceServer = g_InputOptions.serveronly.lower()
-        if (SourceServer == "localhost" or SourceServer == "127.0.0.1"): SourceServer = g_HostName 
-        
-        if (not MatchServerName(SourceServer, ServerName)):
+        if (not MatchServerName(g_InputOptions.serveronly, ServerName)):
             if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
             return True
         
@@ -457,15 +484,19 @@ def DoOneDeploy(destination):
 
     if (IsBackup()):
         if (not CreateBackup(destination)):
-            DisplayError(destination, "Error: Backup failed...aborting deployment!")
+            DisplayError(destination, "\tError: Backup failed...aborting deployment!")
             return False
 
     if (not DeployFiles(destination)):
-        DisplayError(destination, "Error copying files with rsync...aborting deployment!")
+        DisplayError(destination, "\tError copying files with rsync...aborting deployment!")
+        return False
+    
+    if (not DeployManualCopy(destination)):
+        DisplayError(destination, "\tError manually copying specific files...aborting deployment!")
         return False
 
     if (not DeployDeleteFiles(destination)):
-        DisplayError(destination, "Error deleting files from deployment path!")
+        DisplayError(destination, "\tError deleting files from deployment path!")
         return False
 
     AddDeployLog(destination)
