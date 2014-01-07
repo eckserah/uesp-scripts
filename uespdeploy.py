@@ -310,7 +310,36 @@ def CreateBackup(destination):
     return True
 
 
+def DoMakePath(path):
+    ServerName = ExtractServerName(path)
+    
+    if (not ServerName):
+        if (GetVerboseLevel() > 1): print "\tEnsuring the path '{0}' exists.".format(path)
+        os.makedirs(path)
+    else:
+        RemotePath = ExtractFileName(path)
+        Cmd = "mkdir -p {0}".format(RemotePath)
+        
+        if (GetVerboseLevel() > 1): print "\tEnsuring the remote path '{0}' on '{1}' exists.".format(RemotePath, ServerName)
+        
+        ssh = subprocess.Popen(["ssh", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ssh.wait()
+        
+        error = ssh.stderr.readlines()
+        
+        if error != []:
+            print "\tError: Remote ssh command returned error: {0}".format(error)
+            return False
+        elif (ssh.returncode != 0):
+            print "\tError: Remote ssh command returned {0}".format(ssh.returncode)
+            return False
+        
+    return True
+
+
 def DeployFiles(destination):
+    if (not DoMakePath(destination)): return False
+    
     RsyncCmd = CreateRsyncCommand(g_SourcePath, destination)
     Result = subprocess.call(RsyncCmd)
     if (Result != 0): return False
