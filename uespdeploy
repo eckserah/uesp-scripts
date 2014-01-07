@@ -87,7 +87,7 @@ def CreateDeployTable():
 def InitDatabase():
     global g_DB
     
-    if (GetVerboseLevel()): print "Trying to connect to MySQL database {0} on {1}:{2} as {3}".format(DB_DATABASE, DB_SERVER, DB_PORT, DB_USER)
+    if (GetVerboseLevel() > 1): print "Trying to connect to MySQL database {0} on {1}:{2} as {3}".format(DB_DATABASE, DB_SERVER, DB_PORT, DB_USER)
     g_DB = mdb.connect(host=DB_SERVER, user=DB_USER, passwd=DB_PASSWORD, db=DB_DATABASE, port=DB_PORT)
     
     QueryStr = "SELECT * FROM information_schema.tables WHERE table_schema='{0}' AND table_name='{1}' LIMIT 1;".format(DB_DATABASE, DB_TABLE)
@@ -358,13 +358,13 @@ def DoMakePath(path):
     ServerName = ExtractServerName(path)
     
     if (not ServerName):
-        if (GetVerboseLevel() > 1): print "\tEnsuring the path '{0}' exists.".format(path)
+        if (GetVerboseLevel() > 0): print "\tEnsuring the local path '{0}' exists.".format(path)
         os.makedirs(path)
     else:
         RemotePath = ExtractFileName(path)
         Cmd = "mkdir -p {0}".format(RemotePath)
         
-        if (GetVerboseLevel() > 1): print "\tEnsuring the remote path '{0}' on '{1}' exists.".format(RemotePath, ServerName)
+        if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' on '{1}' exists.".format(RemotePath, ServerName)
         
         ssh = subprocess.Popen(["ssh", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
@@ -382,8 +382,10 @@ def DoMakePath(path):
 
 def DeployFiles(destination):
     if (not DoMakePath(destination)): return False
-    
+        
     RsyncCmd = CreateRsyncCommand(g_SourcePath, destination)
+    
+    if (GetVerboseLevel() > 0): print "\tCopying files from {0} to {1}...".format(g_SourcePath, destination)
     Result = subprocess.call(RsyncCmd)
     if (Result != 0): return False
     return True
