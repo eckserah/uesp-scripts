@@ -580,7 +580,7 @@ def DoOneDeploy(destination):
 def DoDeploy():
     
     if (not ChangeSourceOwnership()):
-        DisplayError(destination, "Error changing ownership of source files...aborting deployment!")
+        DisplayError("", "Error changing ownership of source files...aborting deployment!")
         return False
     
     if (g_InputOptions.destination):
