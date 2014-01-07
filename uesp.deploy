@@ -25,5 +25,5 @@ dest = squid2.uesp.net:/home/uesp/scripts/
 chown_source = :uespadmin -R *
 
 # Set the ownership of the destination directory 
-chown_dest = :uespadmin
+chown_dest = :uespadmin {dest}
 

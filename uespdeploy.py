@@ -415,6 +415,26 @@ def DoChangeOwnership(chowncmd):
     return True
 
 
+def DoChangeRemoteOwnership(destination, chowncmd):
+    ServerName = ExtractServerName(destination)
+    PathName   = ExtractFileName(destination)
+    BaseCmd = chowncmd.replace("{dest}", PathName)
+    
+    if (not ServerName): return DoChangeOwnership(BaseCmd)
+    
+    Cmd = "ssh {0} 'chown {1}'".format(ServerName, BaseCmd)
+    if (GetVerboseLevel() > 1): print "\tRemote Chown Command: {0}".format(Cmd)
+    
+    childproc = subprocess.Popen(Cmd, shell=True)
+    childproc.communicate()
+    
+    Result = childproc.returncode
+    if (Result != 0): return False
+    
+    return True
+
+
+
 def ChangeSourceOwnership():
     ChownSources = GetDeployParam("chown_source")
     
@@ -424,6 +444,20 @@ def ChangeSourceOwnership():
     for chownsource in ChownSources:
         if (len(chownsource) > 1):
             Result = DoChangeOwnership(chownsource[1])
+            if (not Result): return False
+
+    return True
+
+
+def ChangeDestOwnership(destination):
+    ChownDests = GetDeployParam("chown_dest")
+    
+    if (GetVerboseLevel() > 0 and len(ChownDests) > 0):
+        print "Changing destination ownership on {0} entries.".format(len(ChownDests))
+
+    for chowndest in ChownDests:
+        if (len(chowndest) > 1):
+            Result = DoChangeRemoteOwnership(destination, chowndest[1])
             if (not Result): return False
 
     return True
@@ -497,6 +531,10 @@ def DoOneDeploy(destination):
 
     if (not DeployDeleteFiles(destination)):
         DisplayError(destination, "\tError deleting files from deployment path!")
+        return False
+    
+    if (not ChangeDestOwnership(destination)):
+        DisplayError(destination, "Error changing ownership of destination files...aborting deployment!")
         return False
 
     AddDeployLog(destination)
