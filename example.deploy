@@ -146,3 +146,9 @@ manualcopy = all: {source}config.php.example {dest}config.php
 manualcopy = content3: {source}path/somefile.txt {dest}  # Keep the same filename on dest
 manualcopy = content3: {source}path/subpath/* {dest}
 
+#
+# addline = filename: string
+#	Use one or more of these commands to add a string to the end of a file on the
+#	destination(s) if it doesn't already exist in the file.
+# 
+addline = LocalSettings.php : require_once( "$IP/extensions/Something/Something.php" );
