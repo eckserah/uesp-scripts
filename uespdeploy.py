@@ -31,14 +31,14 @@ DEFAULT_SOURCEPATH = "./"
 DEFAULT_BACKUPPATH = "/tmp/"
 COMMENT_CHAR = '#'
 
-DB_SERVER = "content3.uesp.net"
-DB_PORT = 3306
 DB_DATABASE = "uesp_deploy"
 DB_TABLE = "deploylog"
 
-    # The following two will be set within the external secrets file loaded at run time
+    # The following will be set within the external secrets file loaded at run time
 DB_USER = ""
 DB_PASSWORD = ""
+DB_SERVER = "content3.uesp.net"
+DB_PORT = 3306
 
 #
 # Global variables
