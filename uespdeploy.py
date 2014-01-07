@@ -170,6 +170,7 @@ def ParseInputArgs():
     parser.add_option("-b", "--backup",     action="store_true",    dest="backup",      help="backup destination files to the tmp directory")
     parser.add_option("-B", "--backuppath", action="store",         dest="backuppath",  help="destination path for any backups") 
     parser.add_option("-l", "--localonly",  action="store_true",    dest="localonly",   help="only deploy to the localhost")
+    parser.add_option("-S", "--serveronly", action="store",         dest="serveronly",  help="only deploy the specified server name")
     return parser.parse_args()
 
 
@@ -210,6 +211,12 @@ def GetVerboseLevel():
 def IsLocalOnly():
     global g_InputOptions
     if (g_InputOptions.localonly): return True
+    return False
+
+
+def IsServerOnly():
+    global g_InputOptions
+    if (g_InputOptions.serveronly): return True
     return False
 
 
@@ -436,6 +443,14 @@ def DoOneDeploy(destination):
         if (not MatchServerName(g_HostName, ServerName)):
             if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
             return True
+    elif (IsServerOnly()):
+        ServerName   = ExtractServerName(destination)
+        SourceServer = g_InputOptions.serveronly.lower()
+        if (SourceServer == "localhost" or SourceServer == "127.0.0.1"): SourceServer = g_HostName 
+        
+        if (not MatchServerName(SourceServer, ServerName)):
+            if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
+            return True
         
     print "Deploying to '{0}'...".format(destination)
     g_DeployCount += 1
@@ -480,6 +495,8 @@ def DoDeploy():
             
     if (IsLocalOnly() and g_DeployCount == 0):
         print "Warning: No deployment occurred as localhost was not found in deploy file '{0}'!".format(g_InputOptions.deployfile)
+    elif (IsServerOnly() and g_DeployCount == 0):
+        print "Warning: No deployment occurred as {1} was not found in deploy file '{0}'!".format(g_InputOptions.deployfile, g_InputOptions.serveronly)
    
     return True
 
