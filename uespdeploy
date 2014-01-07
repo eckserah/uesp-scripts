@@ -1,12 +1,12 @@
 #!/usr/bin/python26
 #
-# uespdeploy.py
+# uespdeploy
 #   by Dave Humphrey (dave@uesp.net), created on 5 Jan 2014
 #
 # A basic script for deploying software onto one or more servers on
 # the UESP.net website.
 #
-# Run 'uespdeply.py -h' to see basic help on command line options.
+# Run 'uespdeploy -h' to see basic help on command line options.
 # By default it tries to load and rin the 'uesp.deploy' file in the
 # current directory. Command line options will override data from the
 # deployment data file.

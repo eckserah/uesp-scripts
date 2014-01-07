@@ -1,10 +1,10 @@
 #!/usr/bin/python26
 #
-# uespdeploylog.py
+# uespdeploylog
 #   by Dave Humphrey (dave@uesp.net), created on 6 Jan 2014
 #
 # A very simple script that displays the log of deployments as created
-# by the uespdeploy.py script.
+# by the uespdeploy script.
 #
 
 import os
