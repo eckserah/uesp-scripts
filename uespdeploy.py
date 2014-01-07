@@ -49,7 +49,8 @@ g_DeployParams = []
 g_SourcePath = DEFAULT_SOURCEPATH
 g_LastBackupPath = ""
 g_RevisionNumber = ""
-
+g_HostName = ""
+g_DeployCount = 0
 g_DB = None
 
 
@@ -168,6 +169,7 @@ def ParseInputArgs():
     parser.add_option("-H", "--hostname",   action="store",         dest="hostname",    help="manually specify the localhost's name", type="string")
     parser.add_option("-b", "--backup",     action="store_true",    dest="backup",      help="backup destination files to the tmp directory")
     parser.add_option("-B", "--backuppath", action="store",         dest="backuppath",  help="destination path for any backups") 
+    parser.add_option("-l", "--localonly",  action="store_true",    dest="localonly",   help="only deploy to the localhost")
     return parser.parse_args()
 
 
@@ -203,6 +205,12 @@ def GetVerboseLevel():
     
     if (Verbose): 
         return int(Verbose)
+
+
+def IsLocalOnly():
+    global g_InputOptions
+    if (g_InputOptions.localonly): return True
+    return False
 
 
 def IsBackup():
@@ -415,8 +423,22 @@ def ChangeSourceOwnership():
     return True
 
 
+def MatchServerName(HostName, ServerName):
+    return ServerName.lower().startswith(HostName.lower())
+
+
 def DoOneDeploy(destination):
+    global g_DeployCount
+    
+    if (IsLocalOnly()):
+        ServerName = ExtractServerName(destination)
+        
+        if (not MatchServerName(g_HostName, ServerName)):
+            if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
+            return True
+        
     print "Deploying to '{0}'...".format(destination)
+    g_DeployCount += 1
 
     if (IsBackup()):
         if (not CreateBackup(destination)):
@@ -455,6 +477,9 @@ def DoDeploy():
     for destination in AllDests:
         if (len(destination) > 1):
             DoOneDeploy(destination[1])
+            
+    if (IsLocalOnly() and g_DeployCount == 0):
+        print "Warning: No deployment occurred as localhost was not found in deploy file '{0}'!".format(g_InputOptions.deployfile)
    
     return True
 
@@ -471,6 +496,7 @@ if (GetVerboseLevel()):
 LoadSecrets()
 InitDatabase()
 
+g_HostName = GetHostName()
 g_SourcePath = GetSourcePath()
 print "Installing from local path '{0}'".format(g_SourcePath)
 
