@@ -17,4 +17,5 @@ Script Descriptions
 Basic description of scripts are below. For more information see the header block
 in each script file.
 
-	uespdeploy.py -- Used for deploying various software on the UESP servers.
+	uespdeploy -- Used for deploying various software on the UESP servers.
+	uespdeploylog -- Displays the deployment log.
