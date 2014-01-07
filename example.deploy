@@ -94,6 +94,9 @@ dest = /home/uesp/scripts/
 #	all admin users can edit or update the deployment in the future. Multiple lines 
 #	of this command are permitted.
 #
+#	NOTE: This feature is currently broken due to issues changing file ownership
+#	as a non-root user.
+#
 chown_source = :uespadmin -R *
 chown_source = :uespadmin somefile.txt
 
@@ -102,6 +105,9 @@ chown_source = :uespadmin somefile.txt
 #	This is nearly identical to the chown_source command except it takes 'chown'
 #	commands to change the ownership of files on each destination. The value of
 #	'{dest}' is replaced with the destination path.
+#
+#	NOTE: This feature is currently broken due to issues changing file ownership
+#	as a non-root user.
 #
 chown_dest = :uespadmin {dest}somefile.txt
 chown_dest = :uespadmin {dest}	# Change the ownership of the root path

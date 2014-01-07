@@ -468,7 +468,9 @@ def ChangeSourceOwnership():
     ChownSources = GetDeployParam("chown_source")
     
     if (GetVerboseLevel() > 0 and len(ChownSources) > 0):
-        print "Changing source ownership on {0} entries.".format(len(ChownSources))
+        #print "Changing source ownership on {0} entries.".format(len(ChownSources))
+        print "Warning: Skipping changing source ownership on {0} entries!".format(len(ChownSources))
+        return True
 
     for chownsource in ChownSources:
         if (len(chownsource) > 1):
@@ -482,7 +484,9 @@ def ChangeDestOwnership(destination):
     ChownDests = GetDeployParam("chown_dest")
     
     if (GetVerboseLevel() > 0 and len(ChownDests) > 0):
-        print "Changing destination ownership on {0} entries.".format(len(ChownDests))
+        #print "Changing destination ownership on {0} entries.".format(len(ChownDests))
+        print "Warning: Skipping changing destination ownership on {0} entries!".format(len(ChownSources))
+        return True
 
     for chowndest in ChownDests:
         if (len(chowndest) > 1):
