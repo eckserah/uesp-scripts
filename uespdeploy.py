@@ -388,7 +388,7 @@ def DoDeleteFile(destination, filename):
 
 
 def DeployDeleteFiles(destination):
-    DeletedFiles = GetDeployParam("deletefromdest")
+    DeletedFiles = GetDeployParam("delete_dest")
 
     for file in DeletedFiles:
         if (len(file) <= 1): continue
@@ -465,6 +465,7 @@ def ChangeDestOwnership(destination):
 
 def MatchServerName(HostName, ServerName):
     TmpHostName = HostName.lower();
+    if (TmpHostName == 'all'): return True
     if (TmpHostName == "localhost" or TmpHostName == "127.0.0.1"): TmpHostName = g_HostName
     return ServerName.lower().startswith(TmpHostName)
 
