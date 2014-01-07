@@ -1,0 +1,29 @@
+#
+#
+#
+#
+
+name = uesp.scripts
+description = Collection of various scripts used by the UESP
+repository = https://code.google.com/p/uesp.scripts/
+backup = false
+backuppath = /tmp/
+verbosity = 0
+
+ignore = *.deploy
+ignore = .hg*
+
+dest = content1.uesp.net:/home/uesp/scripts/
+dest = content2.uesp.net:/home/uesp/scripts/
+dest = content3.uesp.net:/home/uesp/scripts/
+dest = files1.uesp.net:/home/uesp/scripts/
+dest = db1.uesp.net:/home/uesp/scripts/
+dest = db2.uesp.net:/home/uesp/scripts/
+dest = squid1.uesp.net:/home/uesp/scripts/
+dest = squid2.uesp.net:/home/uesp/scripts/
+
+chown_source = :uespadmin -R *
+
+# Set the ownership of the destination directory 
+chown_dest = :uespadmin
+
