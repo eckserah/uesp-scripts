@@ -243,6 +243,12 @@ def ExtractServerName(path):
     return TmpSplit[0]
 
 
+def ExtractFileName(path):
+    TmpSplit = path.split(':', 1)
+    if (len(TmpSplit) == 1): return TmpSplit[0];
+    return TmpSplit[1]
+
+
 def LoadDeployFile(filename):
     global g_DeployParams
     print "Loading deploy file '{0}'...".format(filename)
@@ -311,6 +317,33 @@ def DeployFiles(destination):
     return True
 
 
+def DoDeleteFile(destination, filename):
+    if (GetVerboseLevel()): print "\tDeleting file '{0}' from destination.".format(filename)
+    
+    ServerName = ExtractServerName(destination)
+    
+    if (not ServerName):
+        if (os.path.exists(filename)):
+            os.remove(filename)
+    else:
+        RemotePath = ExtractFileName(filename)
+        Cmd = "rm -f {0}".format(RemotePath)
+        
+        ssh = subprocess.Popen(["ssh", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ssh.wait()
+        
+        error = ssh.stderr.readlines()
+        
+        if error != []:
+            print "\tError: Remote ssh command returned error: {0}".format(error)
+            return False
+        elif (ssh.returncode != 0):
+            print "\tError: Remote ssh command returned {0}".format(ssh.returncode)
+            return False
+        
+    return True
+
+
 def DeployDeleteFiles(destination):
     DeletedFiles = GetDeployParam("deletefromdest")
 
@@ -320,11 +353,8 @@ def DeployDeleteFiles(destination):
         filename = destination + file[1]
 
             # TODO: Fails for remote files
-        if (os.path.exists(filename)):
-            if (GetVerboseLevel()):
-                print "\tDeleting file '{0}' from destination.".format(filename)
-            os.remove(filename)
-            #ssh username@domain.com 'rm /some/where/some_file.war'
+        if (not DoDeleteFile(destination, filename)): return False
+        
 
     return True
 
