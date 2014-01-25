@@ -89,7 +89,7 @@ def DisplayDeployLog():
     DisplayCount = GetDisplayCount()
     if (DisplayCount < 0): DisplayCount = 0
     
-    QueryStr = "SELECT timestamp, username, appname, source, destination, error, backuppath, revision FROM {0}.{1} ORDER BY timestamp ASC;".format(DB_DATABASE, DB_TABLE)
+    QueryStr = "SELECT timestamp, username, appname, source, destination, error, backuppath, revision, message FROM {0}.{1} ORDER BY timestamp ASC;".format(DB_DATABASE, DB_TABLE)
     
     g_DB.query(QueryStr)
     Results = g_DB.store_result()
@@ -105,7 +105,7 @@ def DisplayDeployLog():
     for row in Records:
         RowCount += 1
         if (DisplayCount > 0 and RowCount <= (Results.num_rows()-DisplayCount)): continue
-        print "{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}".format(row["timestamp"], row["username"], row["appname"], row["source"], row["destination"], "failed" if row["error"] else "success", row["backuppath"], row["revision"])
+        print "{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}".format(row["timestamp"], row["username"], row["appname"], row["source"], row["destination"], "failed" if row["error"] else "success", row["backuppath"], row["revision"], row["message"])
         PrintCount += 1
     
     print "Displayed {0} of {1} rows from deployment log.".format(PrintCount, Results.num_rows())

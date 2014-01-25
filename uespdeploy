@@ -76,7 +76,8 @@ def CreateDeployTable():
                 backuppath TEXT NOT NULL,
                 deployfile TEXT NOT NULL,
                 revision TEXT NOT NULL,
-                error TEXT NOT NULL
+                error TEXT NOT NULL,
+                message TEXT NOT NULL
                 """
     QueryStr = HeaderStr + TableDef + ");"
     if (GetVerboseLevel() >= 2): print "\t{0}".format(QueryStr)
@@ -169,8 +170,8 @@ def AddDeployLog(destination, error=""):
     with open (g_InputOptions.deployfile, "r") as myfile:
         DeployFile = g_DB.escape_string(myfile.read())
     
-    HeaderStr = "INSERT INTO {0}.{1} (username, appname, options, source, destination, backuppath, error, deployfile, revision) ".format(DB_DATABASE, DB_TABLE)
-    ValueStr = "VALUES ('{0}', '{1}', \"{2}\", '{3}', '{4}', '{5}', '{6}', '{7}', '{8}');".format(
+    HeaderStr = "INSERT INTO {0}.{1} (username, appname, options, source, destination, backuppath, error, deployfile, revision, message) ".format(DB_DATABASE, DB_TABLE)
+    ValueStr = "VALUES ('{0}', '{1}', \"{2}\", '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}');".format(
                                                                                     g_DB.escape_string(getpass.getuser()),
                                                                                     g_DB.escape_string(GetDeployParamValue("name")),
                                                                                     OptionStr,
@@ -179,7 +180,8 @@ def AddDeployLog(destination, error=""):
                                                                                     BackupPath,
                                                                                     g_DB.escape_string(error),
                                                                                     DeployFile,
-                                                                                    g_DB.escape_string(g_RevisionNumber)) 
+                                                                                    g_DB.escape_string(g_RevisionNumber),
+                                                                                    g_DB.escape_string(GetDeployMessage())) 
     QueryStr = HeaderStr + ValueStr
     
     if (GetVerboseLevel() >= 2): print "\tAdding deploy log database row:\n\t\t{0}".format(QueryStr)
@@ -200,6 +202,7 @@ def ParseInputArgs():
     parser.add_option("-B", "--backuppath", action="store",         dest="backuppath",  help="destination path for any backups") 
     parser.add_option("-l", "--localonly",  action="store_true",    dest="localonly",   help="only deploy to the localhost")
     parser.add_option("-S", "--serveronly", action="store",         dest="serveronly",  help="only deploy the specified server name")
+    parser.add_option("-m", "--message",    action="store",         dest="message",     help="a short message describing the deployment", type="string", default="")
     return parser.parse_args()
 
 
@@ -273,6 +276,12 @@ def GetBackupPath():
         return BackupPath
     
     return DEFAULT_BACKUPPATH
+
+
+def GetDeployMessage():
+    Message = g_InputOptions.message
+    if (not Message): Message = GetDeployParamValue("message")
+    return Message
 
 
 def GetSourcePath():
