@@ -152,3 +152,21 @@ manualcopy = content3: {source}path/subpath/* {dest}
 #	destination(s) if it doesn't already exist in the file.
 # 
 addline = LocalSettings.php : require_once( "$IP/extensions/Something/Something.php" );
+
+#
+# deployfile = name:/path/
+# deployfile = name:/path/file.deploy
+#	Specifies another deploy file to run. Given path is relative to the source
+#	directory. If no filename is specified then 'uesp.deploy' is assumed. Note
+#	that the given deploy file is run in a completely separate instance reusing
+#	the same command line arguments except the source (-s) and deploy file (-f).
+#
+#	The deploy name can be used on the command line to limit which of the deployfile
+#	lines are run. With the below example if we run uespdeploy like:
+#
+#				uespdeploy test
+#
+#	Then only the second deployfile entry named 'test' will be run.
+#
+deployfile = wiki:/wiki/
+deployfile = test:/debug/debug.deploy

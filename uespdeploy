@@ -50,6 +50,7 @@ g_SourcePath = DEFAULT_SOURCEPATH
 g_LastBackupPath = ""
 g_RevisionNumber = ""
 g_HostName = ""
+g_DeployName = ""
 g_DeployCount = 0
 g_DB = None
 
@@ -108,6 +109,7 @@ def CloseDatabase():
 def GetRevisionNumber():
     global g_SourcePath
     
+    currentPath = os.getcwd()
     os.chdir(os.path.abspath(g_SourcePath))
     
     Cmd = ["hg", "id", "--id", "-r ."]
@@ -119,6 +121,8 @@ def GetRevisionNumber():
         RevNum = ""
     
     if (GetVerboseLevel()): print "Got '{0}' for the revision number".format(RevNum)
+    
+    os.chdir(currentPath)
     return RevNum
 
 
@@ -192,7 +196,7 @@ def AddDeployLog(destination, error=""):
 
 
 def ParseInputArgs():
-    parser = OptionParser()
+    parser = OptionParser(usage="usage: %prog [options] [deployname]", version='v0.1 28 Jan 2014')
     parser.add_option("-v", "--verbosity",  action="count",         dest="verbose",     help="increase output verbosity")
     parser.add_option("-s", "--source",     action="store",         dest="source",      help="path to the source being deployed (defaults to the current local directory)", type="string", default=DEFAULT_SOURCEPATH)
     parser.add_option("-d", "--destination",action="store",         dest="destination", help="destination path for the installation", type="string")
@@ -694,6 +698,64 @@ def DoOneDeploy(destination):
     return True
 
 
+def RunDeployFile(deployValue):
+    TmpSplit = deployValue.split(':', 1)
+    
+    if (len(TmpSplit) == 1): 
+        DisplayError("", "Invalid 'deployfile' value '{0}' found!".format(deployValue))
+        return False
+    
+    deployName = TmpSplit[0].strip().lower()
+    
+    if (len(g_DeployName) > 0 and g_DeployName != deployName):
+        if (GetVerboseLevel() > 0): print "Skipping deployment '{0}'...".format(deployName)
+        return True
+    
+    deployFile = TmpSplit[1].strip()
+    if (deployFile.endswith('/')): deployFile += 'uesp.deploy'
+    if (deployFile.startswith('/')): deployFile = deployFile[1:]
+    deployFile = g_SourcePath + deployFile
+    
+    if (os.path.samefile(g_InputOptions.deployfile, deployFile)):
+        DisplayError("", "Recursive use of deploy file {0} found...skipping!".format(deployFile)) 
+        return False
+    
+    (deployPath, filename) = os.path.split(deployFile);
+    if (not deployPath.endswith('/')): deployPath += '/'
+    
+    print "Trying to run deployment {0} from file {1} in path {2}...".format(deployName, deployFile, deployPath)
+    
+    DeployCmd = [ os.path.realpath(__file__) ];
+    DeployCmd.extend(sys.argv[1:]);
+    
+    if ('-f' in DeployCmd):
+        index = DeployCmd.index('-f')
+        del DeployCmd[index:index+2]
+        
+    if ('--file' in DeployCmd):
+        index = DeployCmd.index('--file')
+        del DeployCmd[index:index+2]
+    
+    if ('-s' in DeployCmd):
+        index = DeployCmd.index('-s')
+        del DeployCmd[index:index+2]
+        
+    if ('--source' in DeployCmd):
+        index = DeployCmd.index('--source')
+        del DeployCmd[index:index+2]
+        
+    DeployCmd.append('-f');
+    DeployCmd.append(deployFile);
+    DeployCmd.append('-s');
+    DeployCmd.append(deployPath);
+    
+    Result = subprocess.call(DeployCmd)
+    if (Result != 0): return False
+    
+    print "\tSuccessfully ran deploy file {0}!".format(deployFile)
+    return True
+
+
 def DoDeploy():
     
     if (not ChangeSourceOwnership()):
@@ -704,15 +766,22 @@ def DoDeploy():
         return DoOneDeploy(g_InputOptions.destination)
 
     AllDests = GetDeployParam("dest")
+    AllDeployFiles = GetDeployParam("deployfile")
 
-    if (len(AllDests) == 0):
+    if (len(AllDests) == 0 and len(AllDeployFiles) == 0):
         print "Error: No deployment destinations specified!"
         return False
 
     for destination in AllDests:
         if (len(destination) > 1):
             DoOneDeploy(destination[1])
-            
+    
+    for deployfile in AllDeployFiles:
+        if (len(deployfile) > 1):
+            RunDeployFile(deployfile[1])
+    
+    if (len(AllDeployFiles) > 0): return True
+    
     if (IsLocalOnly() and g_DeployCount == 0):
         print "Warning: No deployment occurred as localhost was not found in deploy file '{0}'!".format(g_InputOptions.deployfile)
     elif (IsServerOnly() and g_DeployCount == 0):
@@ -727,6 +796,10 @@ def DoDeploy():
 (g_InputOptions, g_InputArgs) = ParseInputArgs()
 LoadDeployFile(g_InputOptions.deployfile)
 
+if (len(g_InputArgs)) > 0:
+    g_DeployName = g_InputArgs[0].lower()
+    if (GetVerboseLevel() > 0): print "Running deployment just for '{0}'...".format(g_DeployName)
+
 if (GetVerboseLevel()):
     print "Local hostname is '{0}'".format(GetHostName())
 
@@ -735,7 +808,7 @@ InitDatabase()
 
 g_HostName = GetHostName()
 g_SourcePath = GetSourcePath()
-print "Installing from local path '{0}'".format(g_SourcePath)
+print "Installing from local path '{0}' ({1})...".format(g_SourcePath, os.path.realpath(g_SourcePath))
 
 g_RevisionNumber = GetRevisionNumber()
 
