@@ -21,6 +21,7 @@ from optparse import OptionParser
 import sys
 import MySQLdb as mdb
 import getpass
+import shlex
 
 #
 # Constants
@@ -313,6 +314,17 @@ def ExtractFileName(path):
     return TmpSplit[1]
 
 
+def ExtractPathName(path):
+    TmpSplit = path.split(':', 1)
+    if (len(TmpSplit) == 1):
+        Filename = TmpSplit[0]
+    else:
+        Filename = TmpSplit[1]
+        
+    if (Filename.endswith('/')): return Filename
+    return Filename.rsplit('/', 1)[0] + '/'
+
+
 def LoadDeployFile(filename):
     global g_DeployParams
     print "Loading deploy file '{0}'...".format(filename)
@@ -358,6 +370,12 @@ def CreateRsyncCommand(source, dest, optargs=[]):
 def CreateBackup(destination):
     global g_LastBackupPath
     
+    Pathname   = ExtractFileName(destination)
+    
+    if (Pathname == '/dev/null'):
+        if (GetVerboseLevel() > 1): print "\tSkipping backup of /dev/null destination'..."
+        return True
+    
     print "\tCreating backup of existing source in '{0}'...".format(destination)
     BackupPath = GetBackupPath()
     BackupPath += "{0}_{1}_{2}/".format(GetDeployParamValue("name"), ExtractServerName(destination), datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
@@ -385,9 +403,10 @@ def DoMakePath(path):
         os.makedirs(path)
     else:
         RemotePath = ExtractFileName(path)
-        Cmd = "sudo mkdir -p {0}".format(RemotePath)
+        Cmd = "sudo -u {1} mkdir -p {0}".format(RemotePath, getpass.getuser())
         
         if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' on '{1}' exists.".format(RemotePath, ServerName)
+        if (GetVerboseLevel() > 1): print "\tMkdir Cmd: {0}".format(Cmd)
         
         ssh = subprocess.Popen(["ssh", "-t", "-q", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
@@ -404,6 +423,11 @@ def DoMakePath(path):
 
 
 def DeployFiles(destination):
+    
+    if (ExtractFileName(destination) == '/dev/null'):
+        if (GetVerboseLevel() > 0): print "\tSkipping deployment of files to /dev/null destination'..."
+        return True
+    
     if (not DoMakePath(destination)): return False
         
     RsyncCmd = CreateRsyncCommand(g_SourcePath, destination)
@@ -574,9 +598,10 @@ def MatchServerName(HostName, ServerName):
 
 
 def DeployManualCopy(destination):
-    
     ManualCopyCmds = GetDeployParam("manualcopy")
     ServerName = ExtractServerName(destination)
+    DestServer = ServerName;
+    if (DestServer): DestServer += ':'
     
     for manualcopycmd in ManualCopyCmds:
         if (len(manualcopycmd) <= 1): continue
@@ -587,8 +612,17 @@ def DeployManualCopy(destination):
         
         if (not MatchServerName(cmdresult[0], ServerName)): continue
         
-        BaseCmd = cmdresult[1].replace("{source}", g_SourcePath).replace("{dest}", destination).strip()
+        BaseCmd = cmdresult[1].replace("{source}", g_SourcePath).replace("{dest}", destination).replace("{destserver}", DestServer).strip()
         if (GetVerboseLevel() > 0): print "\tManually copying file: {0}".format(BaseCmd)
+        
+        SplitCmd = shlex.split(BaseCmd)
+        
+        if (len(SplitCmd) > 1):
+            PathName = ExtractPathName(SplitCmd[1])
+            
+            if (not DoCreatePath(destination, PathName)):
+                print "\tError: Failed to create the path...aborting manual copy of '{0}'!".format(SplitCmd[0])
+                continue
         
         ScpCmd = "scp -pq "
         if (GetVerboseLevel() > 2): ScpCmd += "-v "
@@ -691,6 +725,11 @@ def DoAddLineDest(destination, addline):
 
 
 def AddLinesDest(destination):
+    
+    if (ExtractFileName(destination) == '/dev/null'):
+        if (GetVerboseLevel() > 1): print "\tSkipping adding lines to files in /dev/null destination'..."
+        return True
+    
     AddLines = GetDeployParam("addline")
     
     for addline in AddLines:
@@ -742,7 +781,7 @@ def DoOneDeploy(destination):
         if (not MatchServerName(g_InputOptions.serveronly, ServerName)):
             if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
             return True
-        
+    
     print "Deploying to '{0}'...".format(destination)
     
     if (CompareSourceDestPaths(g_SourcePath, destination)):

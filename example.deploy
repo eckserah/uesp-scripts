@@ -91,10 +91,15 @@ source = /home/dave/uesp.test/
 #	locations on different servers. The destination path will be created if it does
 #	not exist.
 #
+#	If the destination path is the special value of '/dev/null' then no files 
+#	will be deployed but other commands (chown, chmod, create path, copy files, 
+#	etc...) will be run on the server.
+#
 dest = content1.uesp.net:/home/uesp/scripts/
 dest = content2.uesp.net:/home/uesp/scripts/
 dest = content3.uesp.net:/home/uesp/scripts/
 dest = /home/uesp/scripts/
+dest = files1.uesp.net:/dev/null
 
 #
 # chown_source = chown params 
@@ -151,9 +156,10 @@ delete_dest = *.log
 #	Manually copies files from the source to the destination after the initial
 #	deployment. Only copies files where "servername" matches the destination
 #	server (short servername names can be used so that 'content1' will match
-#	'content1.uesp.net'). The values of {source} and {dest} will be replaced
-#	by the source and destination paths respectively. If servername is 'all'
-#	the file will be copied to all destinations.
+#	'content1.uesp.net'). If servername is 'all' the file will be copied to all
+#	destinations. The values of {source}, {dest} and {destserver} will be
+#	replaced by the source path, destination path, and destination server name
+#	respectively. 
 #
 #	Note that the filename can be changed from the source to the destination
 #	if specified. This permits non-identical deployments depending on the
@@ -167,6 +173,8 @@ manualcopy = all: {source}config.php.example {dest}config.php
 
 manualcopy = content3: {source}path/somefile.txt {dest}  # Keep the same filename on dest
 manualcopy = content3: {source}path/subpath/* {dest}
+
+manualcopy = all: {source}backupdb.sh {servername}:/etc/cron.daily/backupdb.sh
 
 #
 # addline = filename: string
