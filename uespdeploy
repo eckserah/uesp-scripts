@@ -375,11 +375,11 @@ def DoMakePath(path):
         os.makedirs(path)
     else:
         RemotePath = ExtractFileName(path)
-        Cmd = "mkdir -p {0}".format(RemotePath)
+        Cmd = "sudo mkdir -p {0}".format(RemotePath)
         
         if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' on '{1}' exists.".format(RemotePath, ServerName)
         
-        ssh = subprocess.Popen(["ssh", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ssh = subprocess.Popen(["ssh", "-t", "-q", ServerName, Cmd], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
         error = ssh.stderr.readlines()
         
@@ -447,7 +447,7 @@ def DeployDeleteFiles(destination):
 
 
 def DoChangeOwnership(chowncmd):
-    Cmd = "chown " + chowncmd
+    Cmd = "sudo chown " + chowncmd
     if (GetVerboseLevel() > 1): print "\tChown Command: {0}".format(Cmd)
     
     childproc = subprocess.Popen(Cmd, shell=True)
@@ -466,7 +466,7 @@ def DoChangeRemoteOwnership(destination, chowncmd):
     
     if (not ServerName): return DoChangeOwnership(BaseCmd)
     
-    Cmd = "ssh {0} 'chown {1}'".format(ServerName, BaseCmd)
+    Cmd = "ssh -t -q {0} 'sudo chown {1}'".format(ServerName, BaseCmd)
     if (GetVerboseLevel() > 1): print "\tRemote Chown Command: {0}".format(Cmd)
     
     childproc = subprocess.Popen(Cmd, shell=True)
@@ -482,10 +482,10 @@ def DoChangeRemoteOwnership(destination, chowncmd):
 def ChangeSourceOwnership():
     ChownSources = GetDeployParam("chown_source")
     
-    if (GetVerboseLevel() > 0 and len(ChownSources) > 0):
+    #if (GetVerboseLevel() > 0 and len(ChownSources) > 0):
         #print "Changing source ownership on {0} entries.".format(len(ChownSources))
-        print "Warning: Skipping changing source ownership on {0} entries!".format(len(ChownSources))
-        return True
+        #print "Warning: Skipping changing source ownership on {0} entries!".format(len(ChownSources))
+        #return True
 
     for chownsource in ChownSources:
         if (len(chownsource) > 1):
@@ -498,10 +498,10 @@ def ChangeSourceOwnership():
 def ChangeDestOwnership(destination):
     ChownDests = GetDeployParam("chown_dest")
     
-    if (GetVerboseLevel() > 0 and len(ChownDests) > 0):
+    #if (GetVerboseLevel() > 0 and len(ChownDests) > 0):
         #print "Changing destination ownership on {0} entries.".format(len(ChownDests))
-        print "Warning: Skipping changing destination ownership on {0} entries!".format(len(ChownSources))
-        return True
+        #print "Warning: Skipping changing destination ownership on {0} entries!".format(len(ChownDests))
+        #return True
 
     for chowndest in ChownDests:
         if (len(chowndest) > 1):
