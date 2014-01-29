@@ -170,3 +170,10 @@ addline = LocalSettings.php : require_once( "$IP/extensions/Something/Something.
 #
 deployfile = wiki:/wiki/
 deployfile = test:/debug/debug.deploy
+
+#
+# createpath = pathname
+#	Creates the specified absolute pathname on each destination.
+#
+createpath = /cachefiles
+createpath = /var/log/wikilog

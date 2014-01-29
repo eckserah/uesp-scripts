@@ -645,6 +645,35 @@ def AddLinesDest(destination):
     return True
 
 
+def DoCreatePath(destination, pathname):
+    ServerName = ExtractServerName(destination)
+    
+    if (GetVerboseLevel() > 0): print "\tCreating path '{0}' on destination {1}...".format(pathname, (ServerName if ServerName else localhost))
+    
+    if (len(pathname) == 0):
+        DisplayError(destination, "\tError: Can't create empty path!")
+        return False
+    
+    if (ServerName):
+        fullPath = ServerName + ':' + pathname
+    else:
+        fullPath = pathname
+        
+    if (GetVerboseLevel() > 1): print "\tCreating path '{0}'...".format(fullPath)
+    
+    return DoMakePath(fullPath)
+
+
+def CreatePaths(destination):
+    PathsToCreate = GetDeployParam("createpath")
+    
+    for createpath in PathsToCreate:
+        if (len(createpath) <= 1): continue
+        DoCreatePath(destination, createpath[1])
+    
+    return True
+
+
 def DoOneDeploy(destination):
     global g_DeployCount
     
@@ -674,6 +703,10 @@ def DoOneDeploy(destination):
 
     if (not DeployFiles(destination)):
         DisplayError(destination, "\tError copying files with rsync...aborting deployment!")
+        return False
+    
+    if (not CreatePaths(destination)):
+        DisplayError(destination, "\tError creating paths...aborting deployment!")
         return False
     
     if (not DeployManualCopy(destination)):
