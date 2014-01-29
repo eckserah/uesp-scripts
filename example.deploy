@@ -121,6 +121,20 @@ chown_dest = :uespadmin {dest}somefile.txt
 chown_dest = :uespadmin {dest}	# Change the ownership of the root path
 
 #
+# chmod_dest = chmod params
+#	This command simply takes the same parameters as the 'chmod' shell command to
+#	change the ownership of files/directories in the destination path. Generally you
+#	wish to change the ownership of all files to be world readable but some files may
+#	need to be only readable by the apache user and the uespadmin group. Multiple
+#	lines of this command are permitted.
+#
+#	NOTE: This feature requires the user to have sudo rights to chmod
+#
+chmod_dest = g+rwx {dest}somefile.txt
+chmod_dest = o-rwx {dest}
+chmod_dest = a+r -R {dest}/*
+
+#
 # delete_dest = filespec
 #	Deletes specific files from each destination as given by the file specification.
 #	This is used to delete old and unused files from an existing installation.

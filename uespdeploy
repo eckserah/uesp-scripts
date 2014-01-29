@@ -472,6 +472,19 @@ def DoChangeOwnership(chowncmd):
     return True
 
 
+def DoChangePermission(chmodcmd):
+    Cmd = "sudo chmod " + chmodcmd
+    if (GetVerboseLevel() > 1): print "\tChmod Command: {0}".format(Cmd)
+    
+    childproc = subprocess.Popen(Cmd, shell=True)
+    childproc.communicate()
+    
+    Result = childproc.returncode
+    if (Result != 0): return False
+    
+    return True
+
+
 def DoChangeRemoteOwnership(destination, chowncmd):
     ServerName = ExtractServerName(destination)
     PathName   = ExtractFileName(destination)
@@ -490,6 +503,24 @@ def DoChangeRemoteOwnership(destination, chowncmd):
     
     return True
 
+
+def DoChangeRemotePermission(destination, chmodcmd):
+    ServerName = ExtractServerName(destination)
+    PathName   = ExtractFileName(destination)
+    BaseCmd = chmodcmd.replace("{dest}", PathName)
+    
+    if (not ServerName): return DoChangePermission(BaseCmd)
+    
+    Cmd = "ssh -t -q {0} 'sudo chmod {1}'".format(ServerName, BaseCmd)
+    if (GetVerboseLevel() > 1): print "\tRemote Chmod Command: {0}".format(Cmd)
+    
+    childproc = subprocess.Popen(Cmd, shell=True)
+    childproc.communicate()
+    
+    Result = childproc.returncode
+    if (Result != 0): return False
+    
+    return True
 
 
 def ChangeSourceOwnership():
@@ -519,6 +550,17 @@ def ChangeDestOwnership(destination):
     for chowndest in ChownDests:
         if (len(chowndest) > 1):
             Result = DoChangeRemoteOwnership(destination, chowndest[1])
+            if (not Result): return False
+
+    return True
+
+
+def ChangeDestPermission(destination):
+    ChmodDests = GetDeployParam("chmod_dest")
+
+    for chmoddest in ChmodDests:
+        if (len(chmoddest) > 1):
+            Result = DoChangeRemotePermission(destination, chmoddest[1])
             if (not Result): return False
 
     return True
@@ -732,6 +774,10 @@ def DoOneDeploy(destination):
     
     if (not ChangeDestOwnership(destination)):
         DisplayError(destination, "Error changing ownership of destination files...aborting deployment!")
+        return False
+    
+    if (not ChangeDestPermission(destination)):
+        DisplayError(destination, "Error changing permissions of destination files...aborting deployment!")
         return False
     
     if (not AddLinesDest(destination)):
