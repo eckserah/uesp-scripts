@@ -22,6 +22,7 @@ import sys
 import MySQLdb as mdb
 import getpass
 import shlex
+import pipes
 
 #
 # Constants
@@ -105,6 +106,15 @@ def InitDatabase():
 def CloseDatabase():
     if (g_DB): g_DB.close()
     return True
+
+
+def DoesPathExist(pathname):
+    ServerName = ExtractServerName(pathname)
+    
+    if (not ServerName): return os.path.exists(pathname)
+    
+    RemotePath = ExtractFileName(pathname)
+    return subprocess.call(['ssh', ServerName, 'test -d ' + pipes.quote(RemotePath)]) == 0
 
 
 def GetRevisionNumber():
@@ -348,10 +358,13 @@ def LoadDeployFile(filename):
 
 
 def CreateRsyncCommand(source, dest, optargs=[]):
-    Cmd = ["sudo", "-u", getpass.getuser(), "rsync", "-azImq", "--omit-dir-times", "-e", "ssh -t -t", "--rsync-path", "sudo rsync"]
+    # Cmd = ["sudo", "-u", getpass.getuser(), "rsync", "-azIm", "--omit-dir-times", "-e", "ssh -t -t", "--rsync-path", "sudo rsync"]
+    Cmd = ["rsync", "-azIm", "--omit-dir-times"]
     Cmd += optargs
 
+    if (GetVerboseLevel() == 0): Cmd.append("-q")
     if (GetVerboseLevel() > 1): Cmd.append("-v")
+    if (GetVerboseLevel() > 2): Cmd.append("-v")
 
     IgnoreFiles = GetDeployParam("ignore")
 
@@ -363,7 +376,7 @@ def CreateRsyncCommand(source, dest, optargs=[]):
     Cmd.append(source)
     Cmd.append(dest)
 
-    if (GetVerboseLevel() > 1): print "\trsync cmd: {0}".format(Cmd)
+    if (GetVerboseLevel() > 1): print "\trsync cmd: {0}".format(' '.join(Cmd))
     return Cmd
 
 
@@ -374,6 +387,10 @@ def CreateBackup(destination):
     
     if (Pathname == '/dev/null'):
         if (GetVerboseLevel() > 1): print "\tSkipping backup of /dev/null destination'..."
+        return True
+    
+    if (not DoesPathExist(destination)):
+        print "\tSkipping backup of not existant destination '{0}'!".format(destination)
         return True
     
     print "\tCreating backup of existing source in '{0}'...".format(destination)
@@ -388,7 +405,7 @@ def CreateBackup(destination):
     RsyncCmd = CreateRsyncCommand(destination, BackupPath)
     
     with open(os.devnull, "w") as fnull:
-        Result = subprocess.call(RsyncCmd,  stderr=fnull)
+        Result = subprocess.call(RsyncCmd, stderr=fnull, shell=False)
     
     if (Result != 0): return False
         
@@ -435,9 +452,12 @@ def DeployFiles(destination):
     if (GetVerboseLevel() > 0): print "\tCopying files from {0} to {1}...".format(g_SourcePath, destination)
     
     with open(os.devnull, "w") as fnull:
-        Result = subprocess.call(RsyncCmd,  stderr=fnull)
+        Result = subprocess.call(RsyncCmd, stderr=fnull, shell=False)
         
-    if (Result != 0): return False
+    if (Result != 0):
+        print "\tError: Rsync command returned {0}!".format(Result)
+        return False
+    
     return True
 
 
