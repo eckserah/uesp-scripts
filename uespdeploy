@@ -56,6 +56,11 @@ g_DeployName = ""
 g_DeployCount = 0
 g_DB = None
 
+g_ErrorCount = 0
+g_WarningCount = 0
+g_DeployDestCount = 0
+g_DeployFileCount = 0
+
 
 def LoadSecrets():
     fp = open(SECRETS_FILE)
@@ -407,7 +412,10 @@ def CreateBackup(destination):
     with open(os.devnull, "w") as fnull:
         Result = subprocess.call(RsyncCmd, stderr=fnull, shell=False)
     
-    if (Result != 0): return False
+    if (Result != 0):
+        print "\tError: Rsync transfer failed!"
+        ErrorCount += 1
+        return False
         
     return True
 
@@ -428,6 +436,7 @@ def DoMakePath(path):
         
         if (mkdir.returncode != 0):
             print "\tError: Mkdir command returned {1} (stderr='{0}')!".format(error, mkdir.returncode)
+            ErrorCount += 1
             return False
         
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), path)
@@ -440,6 +449,7 @@ def DoMakePath(path):
         
         if (chown.returncode != 0):
             print "\tError: Chown command returned {1} (stderr='{0}')!".format(error, chown.returncode)
+            ErrorCount += 1
             return False
         
     else:
@@ -458,6 +468,7 @@ def DoMakePath(path):
         
         if (ssh.returncode != 0):
             print "\tError: Remote ssh command returned {1} (stderr='{0}')!".format(error, ssh.returncode)
+            ErrorCount += 1
             return False
         
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), RemotePath)
@@ -472,6 +483,7 @@ def DoMakePath(path):
         
         if (ssh.returncode != 0):
             print "\tError: Remote ssh command returned {1} (stderr='{0}')!".format(error, ssh.returncode)
+            ErrorCount += 1
             return False
         
     return True
@@ -494,6 +506,7 @@ def DeployFiles(destination):
         
     if (Result != 0):
         print "\tError: Rsync command returned {0}!".format(Result)
+        ErrorCount += 1
         return False
     
     return True
@@ -518,9 +531,11 @@ def DoDeleteFile(destination, filename):
         
         if error != []:
             print "\tError: Remote ssh command returned error: {0}".format(error)
+            ErrorCount += 1
             return False
         elif (ssh.returncode != 0):
             print "\tError: Remote ssh command returned {0}".format(ssh.returncode)
+            ErrorCount += 1
             return False
         
     return True
@@ -549,7 +564,11 @@ def DoChangeOwnership(chowncmd):
     childproc.communicate()
     
     Result = childproc.returncode
-    if (Result != 0): return False
+    
+    if (Result != 0):
+        print "\tError: Local chown command failed!"
+        ErrorCount += 1
+        return False
     
     return True
 
@@ -562,7 +581,11 @@ def DoChangePermission(chmodcmd):
     childproc.communicate()
     
     Result = childproc.returncode
-    if (Result != 0): return False
+    
+    if (Result != 0):
+        print "\tError: Local chmod command failed!"
+        ErrorCount += 1
+        return False
     
     return True
 
@@ -581,7 +604,11 @@ def DoChangeRemoteOwnership(destination, chowncmd):
     childproc.communicate()
     
     Result = childproc.returncode
-    if (Result != 0): return False
+    
+    if (Result != 0):
+        print "\tError: Remote chown command failed!"
+        ErrorCount += 1
+        return False
     
     return True
 
@@ -600,7 +627,11 @@ def DoChangeRemotePermission(destination, chmodcmd):
     childproc.communicate()
     
     Result = childproc.returncode
-    if (Result != 0): return False
+    
+    if (Result != 0):
+        print "\tError: Remote chmod command failed!"
+        ErrorCount += 1
+        return False
     
     return True
 
@@ -691,7 +722,11 @@ def DeployManualCopy(destination):
         childproc = subprocess.Popen(ScpCmd, shell=True)
         childproc.communicate()
         Result = childproc.returncode
-        if (Result != 0): return False
+        
+        if (Result != 0):
+            print '\tError: scp copy command failed!'
+            ErrorCount += 1
+            return False
 
     return True
 
@@ -753,8 +788,14 @@ def AddStringToFile(filename, addstring):
     try:
         appendcmd = subprocess.Popen(Cmd, shell=False)
         appendcmd.wait()
-        if (appendcmd.returncode != 0): return False
+        
+        if (appendcmd.returncode != 0):
+            print "\tError: Failed to append data to file '{0}' on '{1}'!".format(FilePath, ServerName)
+            ErrorCount += 1
+            return False
     except:
+        print "\tError: Failed to append data to file '{0}' on '{1}'!".format(FilePath, ServerName)
+        ErrorCount += 1
         return False
         
     return True
@@ -766,7 +807,8 @@ def DoAddLineDest(destination, addline):
     splitaddline = addline.split(':', 1)
     
     if (len(splitaddline) <= 1):
-        if (GetVerboseLevel() > 0): print "\tError: Improperly formatted addline command found: {0}".addline 
+        if (GetVerboseLevel() > 0): print "\tError: Improperly formatted addline command found: {0}".addline
+        ErrorCount += 1 
         return True
     
     FileToModify = splitaddline[0].strip()
@@ -805,6 +847,7 @@ def DoCreatePath(destination, pathname):
     
     if (len(pathname) == 0):
         DisplayError(destination, "\tError: Can't create empty path!")
+        ErrorCount += 1
         return False
     
     if (ServerName):
@@ -829,6 +872,7 @@ def CreatePaths(destination):
 
 def DoOneDeploy(destination):
     global g_DeployCount
+    global g_DeployDestCount
     
     ServerName = ExtractServerName(destination)
     
@@ -884,15 +928,18 @@ def DoOneDeploy(destination):
 
     AddDeployLog(destination)
     print "\tSuccessfully completed deployment!"
+    g_DeployDestCount += 1
 
     return True
 
 
 def RunDeployFile(deployValue):
+    global g_DeployFileCount
     TmpSplit = deployValue.split(':', 1)
     
     if (len(TmpSplit) == 1): 
         DisplayError("", "Invalid 'deployfile' value '{0}' found!".format(deployValue))
+        ErrorCount += 1
         return False
     
     deployName = TmpSplit[0].strip().lower()
@@ -907,7 +954,8 @@ def RunDeployFile(deployValue):
     deployFile = g_SourcePath + deployFile
     
     if (os.path.samefile(g_InputOptions.deployfile, deployFile)):
-        DisplayError("", "Recursive use of deploy file {0} found...skipping!".format(deployFile)) 
+        DisplayError("", "Recursive use of deploy file {0} found...skipping!".format(deployFile))
+        ErrorCount += 1 
         return False
     
     (deployPath, filename) = os.path.split(deployFile);
@@ -950,6 +998,7 @@ def RunDeployFile(deployValue):
     os.chdir(CurrentPath)
     if (Result != 0): return False
     
+    g_DeployFileCount += 1
     print "\tSuccessfully ran deploy file {0}!".format(deployFile)
     return True
 
@@ -968,6 +1017,7 @@ def DoDeploy():
 
     if (len(AllDests) == 0 and len(AllDeployFiles) == 0):
         print "Error: No deployment destinations specified!"
+        ErrorCount += 1
         return False
 
     for destination in AllDests:
@@ -982,8 +1032,10 @@ def DoDeploy():
     
     if (IsLocalOnly() and g_DeployCount == 0):
         print "Warning: No deployment occurred as localhost was not found in deploy file '{0}'!".format(g_InputOptions.deployfile)
+        WarningCount += 1
     elif (IsServerOnly() and g_DeployCount == 0):
         print "Warning: No deployment occurred as {1} was not found in deploy file '{0}'!".format(g_InputOptions.deployfile, g_InputOptions.serveronly)
+        WarningCount += 1
    
     return True
 
@@ -1013,3 +1065,8 @@ g_RevisionNumber = GetRevisionNumber()
 DoDeploy()
 
 CloseDatabase()
+
+if (g_ErrorCount == 0):
+    print "SUCCESS: Deployed to {2} destinations with {0} errors and {1} warnings!".format(g_ErrorCount, g_WarningCount, g_DeployDestCount)
+else:
+    print "FAILED: Deployed to {2} destinations {0} errors and {1} warnings!".format(g_ErrorCount, g_WarningCount, g_DeployDestCount)
