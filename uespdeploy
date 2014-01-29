@@ -329,7 +329,7 @@ def LoadDeployFile(filename):
 
 
 def CreateRsyncCommand(source, dest, optargs=[]):
-    Cmd = ["rsync", "-azIm", "--omit-dir-times"]
+    Cmd = ["sudo", "-u", getpass.getuser(), "rsync", "-azImq", "--omit-dir-times", "-e", "ssh -t -t", "--rsync-path", "sudo rsync"]
     Cmd += optargs
 
     if (GetVerboseLevel() > 1): Cmd.append("-v")
@@ -361,7 +361,10 @@ def CreateBackup(destination):
         os.makedirs(BackupPath)
 
     RsyncCmd = CreateRsyncCommand(destination, BackupPath)
-    Result = subprocess.call(RsyncCmd)
+    
+    with open(os.devnull, "w") as fnull:
+        Result = subprocess.call(RsyncCmd,  stderr=fnull)
+    
     if (Result != 0): return False
         
     return True
@@ -399,7 +402,10 @@ def DeployFiles(destination):
     RsyncCmd = CreateRsyncCommand(g_SourcePath, destination)
     
     if (GetVerboseLevel() > 0): print "\tCopying files from {0} to {1}...".format(g_SourcePath, destination)
-    Result = subprocess.call(RsyncCmd)
+    
+    with open(os.devnull, "w") as fnull:
+        Result = subprocess.call(RsyncCmd,  stderr=fnull)
+        
     if (Result != 0): return False
     return True
 
