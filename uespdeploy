@@ -387,6 +387,7 @@ def CreateRsyncCommand(source, dest, optargs=[]):
 
 def CreateBackup(destination):
     global g_LastBackupPath
+    global g_ErrorCount
     
     Pathname   = ExtractFileName(destination)
     
@@ -414,13 +415,15 @@ def CreateBackup(destination):
     
     if (Result != 0):
         print "\tError: Rsync transfer failed!"
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
         
     return True
 
 
 def DoMakePath(path):
+    global g_ErrorCount
+    
     ServerName = ExtractServerName(path)
     
     if (not ServerName):
@@ -436,7 +439,7 @@ def DoMakePath(path):
         
         if (mkdir.returncode != 0):
             print "\tError: Mkdir command returned {1} (stderr='{0}')!".format(error, mkdir.returncode)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
         
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), path)
@@ -449,7 +452,7 @@ def DoMakePath(path):
         
         if (chown.returncode != 0):
             print "\tError: Chown command returned {1} (stderr='{0}')!".format(error, chown.returncode)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
         
     else:
@@ -468,7 +471,7 @@ def DoMakePath(path):
         
         if (ssh.returncode != 0):
             print "\tError: Remote ssh command returned {1} (stderr='{0}')!".format(error, ssh.returncode)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
         
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), RemotePath)
@@ -483,13 +486,14 @@ def DoMakePath(path):
         
         if (ssh.returncode != 0):
             print "\tError: Remote ssh command returned {1} (stderr='{0}')!".format(error, ssh.returncode)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
         
     return True
 
 
 def DeployFiles(destination):
+    global g_ErrorCount
     
     if (ExtractFileName(destination) == '/dev/null'):
         if (GetVerboseLevel() > 0): print "\tSkipping deployment of files to /dev/null destination'..."
@@ -506,13 +510,15 @@ def DeployFiles(destination):
         
     if (Result != 0):
         print "\tError: Rsync command returned {0}!".format(Result)
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     return True
 
 
 def DoDeleteFile(destination, filename):
+    global g_ErrorCount
+    
     if (GetVerboseLevel()): print "\tDeleting file '{0}' from destination.".format(filename)
     
     ServerName = ExtractServerName(destination)
@@ -531,11 +537,11 @@ def DoDeleteFile(destination, filename):
         
         if error != []:
             print "\tError: Remote ssh command returned error: {0}".format(error)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
         elif (ssh.returncode != 0):
             print "\tError: Remote ssh command returned {0}".format(ssh.returncode)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
         
     return True
@@ -557,6 +563,8 @@ def DeployDeleteFiles(destination):
 
 
 def DoChangeOwnership(chowncmd):
+    global g_ErrorCount
+    
     Cmd = "sudo chown " + chowncmd
     if (GetVerboseLevel() > 1): print "\tChown Command: {0}".format(Cmd)
     
@@ -567,13 +575,15 @@ def DoChangeOwnership(chowncmd):
     
     if (Result != 0):
         print "\tError: Local chown command failed!"
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     return True
 
 
 def DoChangePermission(chmodcmd):
+    global g_ErrorCount
+    
     Cmd = "sudo chmod " + chmodcmd
     if (GetVerboseLevel() > 1): print "\tChmod Command: {0}".format(Cmd)
     
@@ -584,13 +594,15 @@ def DoChangePermission(chmodcmd):
     
     if (Result != 0):
         print "\tError: Local chmod command failed!"
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     return True
 
 
 def DoChangeRemoteOwnership(destination, chowncmd):
+    global g_ErrorCount
+    
     ServerName = ExtractServerName(destination)
     PathName   = ExtractFileName(destination)
     BaseCmd = chowncmd.replace("{dest}", PathName)
@@ -607,13 +619,15 @@ def DoChangeRemoteOwnership(destination, chowncmd):
     
     if (Result != 0):
         print "\tError: Remote chown command failed!"
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     return True
 
 
 def DoChangeRemotePermission(destination, chmodcmd):
+    global g_ErrorCount
+    
     ServerName = ExtractServerName(destination)
     PathName   = ExtractFileName(destination)
     BaseCmd = chmodcmd.replace("{dest}", PathName)
@@ -630,7 +644,7 @@ def DoChangeRemotePermission(destination, chmodcmd):
     
     if (Result != 0):
         print "\tError: Remote chmod command failed!"
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     return True
@@ -687,6 +701,8 @@ def MatchServerName(HostName, ServerName):
 
 
 def DeployManualCopy(destination):
+    global g_ErrorCount
+    
     ManualCopyCmds = GetDeployParam("manualcopy")
     ServerName = ExtractServerName(destination)
     
@@ -725,7 +741,7 @@ def DeployManualCopy(destination):
         
         if (Result != 0):
             print '\tError: scp copy command failed!'
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
 
     return True
@@ -775,6 +791,8 @@ def FindStringInFile(filename, findstring):
 
 
 def AddStringToFile(filename, addstring):
+    global g_ErrorCount
+    
     ServerName = ExtractServerName(filename)
     
     if (not ServerName):
@@ -791,24 +809,26 @@ def AddStringToFile(filename, addstring):
         
         if (appendcmd.returncode != 0):
             print "\tError: Failed to append data to file '{0}' on '{1}'!".format(FilePath, ServerName)
-            ErrorCount += 1
+            g_ErrorCount += 1
             return False
     except:
         print "\tError: Failed to append data to file '{0}' on '{1}'!".format(FilePath, ServerName)
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
         
     return True
 
 
 def DoAddLineDest(destination, addline):
+    global g_ErrorCount
+    
     if (not addline): return True
     
     splitaddline = addline.split(':', 1)
     
     if (len(splitaddline) <= 1):
         if (GetVerboseLevel() > 0): print "\tError: Improperly formatted addline command found: {0}".addline
-        ErrorCount += 1 
+        g_ErrorCount += 1 
         return True
     
     FileToModify = splitaddline[0].strip()
@@ -841,13 +861,15 @@ def AddLinesDest(destination):
 
 
 def DoCreatePath(destination, pathname):
+    global g_ErrorCount
+    
     ServerName = ExtractServerName(destination)
     
     if (GetVerboseLevel() > 0): print "\tCreating path '{0}' on destination {1}...".format(pathname, (ServerName if ServerName else localhost))
     
     if (len(pathname) == 0):
         DisplayError(destination, "\tError: Can't create empty path!")
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     if (ServerName):
@@ -935,11 +957,13 @@ def DoOneDeploy(destination):
 
 def RunDeployFile(deployValue):
     global g_DeployFileCount
+    global g_ErrorCount
+    
     TmpSplit = deployValue.split(':', 1)
     
     if (len(TmpSplit) == 1): 
         DisplayError("", "Invalid 'deployfile' value '{0}' found!".format(deployValue))
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
     
     deployName = TmpSplit[0].strip().lower()
@@ -955,7 +979,7 @@ def RunDeployFile(deployValue):
     
     if (os.path.samefile(g_InputOptions.deployfile, deployFile)):
         DisplayError("", "Recursive use of deploy file {0} found...skipping!".format(deployFile))
-        ErrorCount += 1 
+        g_ErrorCount += 1 
         return False
     
     (deployPath, filename) = os.path.split(deployFile);
@@ -1004,6 +1028,8 @@ def RunDeployFile(deployValue):
 
 
 def DoDeploy():
+    global g_ErrorCount
+    global g_WarningCount
     
     if (not ChangeSourceOwnership()):
         DisplayError("", "Error changing ownership of source files...aborting deployment!")
@@ -1017,7 +1043,7 @@ def DoDeploy():
 
     if (len(AllDests) == 0 and len(AllDeployFiles) == 0):
         print "Error: No deployment destinations specified!"
-        ErrorCount += 1
+        g_ErrorCount += 1
         return False
 
     for destination in AllDests:
@@ -1032,10 +1058,10 @@ def DoDeploy():
     
     if (IsLocalOnly() and g_DeployCount == 0):
         print "Warning: No deployment occurred as localhost was not found in deploy file '{0}'!".format(g_InputOptions.deployfile)
-        WarningCount += 1
+        g_WarningCount += 1
     elif (IsServerOnly() and g_DeployCount == 0):
         print "Warning: No deployment occurred as {1} was not found in deploy file '{0}'!".format(g_InputOptions.deployfile, g_InputOptions.serveronly)
-        WarningCount += 1
+        g_WarningCount += 1
    
     return True
 
