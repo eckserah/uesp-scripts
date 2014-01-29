@@ -600,8 +600,9 @@ def MatchServerName(HostName, ServerName):
 def DeployManualCopy(destination):
     ManualCopyCmds = GetDeployParam("manualcopy")
     ServerName = ExtractServerName(destination)
+    
     DestServer = ServerName;
-    if (DestServer): DestServer += ':'
+    if (DestServer and not DestServer.endswith(':')): DestServer += ':'
     
     for manualcopycmd in ManualCopyCmds:
         if (len(manualcopycmd) <= 1): continue
@@ -624,7 +625,7 @@ def DeployManualCopy(destination):
                 print "\tError: Failed to create the path...aborting manual copy of '{0}'!".format(SplitCmd[0])
                 continue
         
-        ScpCmd = "scp -pq "
+        ScpCmd = "scp -pqr "
         if (GetVerboseLevel() > 2): ScpCmd += "-v "
         ScpCmd += BaseCmd
         if (GetVerboseLevel() > 1): print "\tRunning scp command: {0}".format(ScpCmd)
@@ -854,7 +855,10 @@ def RunDeployFile(deployValue):
     (deployPath, filename) = os.path.split(deployFile);
     if (not deployPath.endswith('/')): deployPath += '/'
     
-    print "Trying to run deployment {0} from file {1} in path {2}...".format(deployName, deployFile, deployPath)
+    deployFile = os.path.realpath(deployFile)
+    deployPath = os.path.realpath(deployPath)
+    
+    print "Trying to run deployment '{0}' from file '{1}' in path '{2}'...".format(deployName, deployFile, deployPath)
     
     DeployCmd = [ os.path.realpath(__file__) ];
     DeployCmd.extend(sys.argv[1:]);
@@ -877,10 +881,15 @@ def RunDeployFile(deployValue):
         
     DeployCmd.append('-f');
     DeployCmd.append(deployFile);
-    DeployCmd.append('-s');
-    DeployCmd.append(deployPath);
+    # DeployCmd.append('-s');
+    # DeployCmd.append(deployPath);
+    
+    CurrentPath = os.getcwd()
+    os.chdir(deployPath)
     
     Result = subprocess.call(DeployCmd)
+    
+    os.chdir(CurrentPath)
     if (Result != 0): return False
     
     print "\tSuccessfully ran deploy file {0}!".format(deployFile)
