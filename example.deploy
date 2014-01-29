@@ -73,6 +73,16 @@ ignore = *.deploy
 ignore = .hg*
 
 #
+# source = path
+#	Specifies the source path to install the files from. This will usually be
+#	a local path relative to the deploy file. It is overruled by the source
+#	parameter on the command line.
+#
+source = ./
+source = ./wiki/
+source = /home/dave/uesp.test/
+
+#
 # dest = path
 # dest = servername:/path
 #	There will be one or more dest lines to specify a deployment destination. This

@@ -198,7 +198,7 @@ def AddDeployLog(destination, error=""):
 def ParseInputArgs():
     parser = OptionParser(usage="usage: %prog [options] [deployname]", version='v0.1 28 Jan 2014')
     parser.add_option("-v", "--verbosity",  action="count",         dest="verbose",     help="increase output verbosity")
-    parser.add_option("-s", "--source",     action="store",         dest="source",      help="path to the source being deployed (defaults to the current local directory)", type="string", default=DEFAULT_SOURCEPATH)
+    parser.add_option("-s", "--source",     action="store",         dest="source",      help="path to the source being deployed (defaults to the current local directory)", type="string")
     parser.add_option("-d", "--destination",action="store",         dest="destination", help="destination path for the installation", type="string")
     parser.add_option("-f", "--file",       action="store",         dest="deployfile",  help="use the specified deployment file instead of uesp.deploy", type="string", default=DEFAULT_DEPLOY)
     parser.add_option("-H", "--hostname",   action="store",         dest="hostname",    help="manually specify the localhost's name", type="string")
@@ -290,6 +290,13 @@ def GetDeployMessage():
 
 def GetSourcePath():
     SourcePath = g_InputOptions.source
+    
+    if (not SourcePath):
+        SourcePath = GetDeployParamValue("source")
+        
+    if (not SourcePath):
+        SourcePath = DEFAULT_SOURCEPATH
+        
     if (not SourcePath.endswith('/')): SourcePath += '/'
     return SourcePath
 
