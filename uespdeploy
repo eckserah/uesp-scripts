@@ -1068,5 +1068,9 @@ CloseDatabase()
 
 if (g_ErrorCount == 0):
     print "SUCCESS: Deployed to {2} destinations with {0} errors and {1} warnings!".format(g_ErrorCount, g_WarningCount, g_DeployDestCount)
+    exit(0)
 else:
     print "FAILED: Deployed to {2} destinations {0} errors and {1} warnings!".format(g_ErrorCount, g_WarningCount, g_DeployDestCount)
+    exit(1)
+    
+    
