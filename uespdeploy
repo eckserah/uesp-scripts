@@ -417,14 +417,54 @@ def DoMakePath(path):
     
     if (not ServerName):
         if (GetVerboseLevel() > 0): print "\tEnsuring the local path '{0}' exists.".format(path)
-        os.makedirs(path)
+        if (os.path.exists(path)): return True
+        
+        Cmd = "sudo mkdir -p {0}".format(path, getpass.getuser())
+        if (GetVerboseLevel() > 1): print "\tMkdir Cmd: {0}".format(SshCmd)
+        
+        mkdir = subprocess.Popen(Cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        mkdir.wait()
+        error = mkdir.stderr.readlines()
+        
+        if (mkdir.returncode != 0):
+            print "\tError: Mkdir command returned {1} (stderr='{0}')!".format(error, mkdir.returncode)
+            return False
+        
+        Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), path)
+        if (GetVerboseLevel() > 0): print "\tChanging the ownership of local path '{0}'...".format(path)
+        if (GetVerboseLevel() > 1): print "\tChown Cmd: {0}".format(Cmd)
+        
+        chown = subprocess.Popen(Cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        chown.wait()
+        error = chown.stderr.readlines()
+        
+        if (chown.returncode != 0):
+            print "\tError: Chown command returned {1} (stderr='{0}')!".format(error, chown.returncode)
+            return False
+        
     else:
         RemotePath = ExtractFileName(path)
+        if (DoesPathExist(ServerName + ':' + RemotePath)): return True
+        
         Cmd = "sudo mkdir -p {0}".format(RemotePath, getpass.getuser())
         SshCmd = ["ssh", "-t", ServerName, Cmd];
         
-        if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' on '{1}' exists.".format(RemotePath, ServerName)
+        if (GetVerboseLevel() > 0): print "\tCreating the remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
         if (GetVerboseLevel() > 1): print "\tMkdir Cmd: {0}".format(SshCmd)
+        
+        ssh = subprocess.Popen(SshCmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ssh.wait()
+        error = ssh.stderr.readlines()
+        
+        if (ssh.returncode != 0):
+            print "\tError: Remote ssh command returned {1} (stderr='{0}')!".format(error, ssh.returncode)
+            return False
+        
+        Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), RemotePath)
+        SshCmd = ["ssh", "-t", ServerName, Cmd];
+        
+        if (GetVerboseLevel() > 0): print "\tChanging the ownership of remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
+        if (GetVerboseLevel() > 1): print "\tChown Cmd: {0}".format(SshCmd)
         
         ssh = subprocess.Popen(SshCmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
