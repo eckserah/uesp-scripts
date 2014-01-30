@@ -223,6 +223,7 @@ def ParseInputArgs():
     parser.add_option("-l", "--localonly",  action="store_true",    dest="localonly",   help="only deploy to the localhost")
     parser.add_option("-S", "--serveronly", action="store",         dest="serveronly",  help="only deploy the specified server name")
     parser.add_option("-m", "--message",    action="store",         dest="message",     help="a short message describing the deployment", type="string", default="")
+    parser.add_option("-T", "--staged",     action="store_true",    dest="staged",      help="use a staged deployment by copying to a temporary directory first")
     return parser.parse_args()
 
 
@@ -251,13 +252,12 @@ def GetHostName():
 def GetVerboseLevel():
     global g_InputOptions
     
-    if (g_InputOptions.verbose):
-        return int(g_InputOptions.verbose)
+    if (g_InputOptions.verbose): return int(g_InputOptions.verbose)
     
     Verbose = GetDeployParamValue("verbosity")
+    if (Verbose): return int(Verbose)
     
-    if (Verbose): 
-        return int(Verbose)
+    return 0
 
 
 def IsLocalOnly():
@@ -277,6 +277,15 @@ def IsBackup():
     
     if (GetDeployParamValue("backup").lower() == "true"): return True
     if (g_InputOptions.backup): return True
+
+    return False
+
+
+def IsStaged():
+    global g_InputOptions
+    
+    if (GetDeployParamValue("staged").lower() == "true"): return True
+    if (g_InputOptions.staged): return True
 
     return False
 
@@ -410,8 +419,8 @@ def CreateBackup(destination):
 
     RsyncCmd = CreateRsyncCommand(destination, BackupPath)
     
-    with open(os.devnull, "w") as fnull:
-        Result = subprocess.call(RsyncCmd, stderr=fnull, shell=False)
+    with open(os.devnull, "w") as fnull: #stderr=fnull,
+        Result = subprocess.call(RsyncCmd, shell=False)
     
     if (Result != 0):
         print "\tError: Rsync transfer failed!"
@@ -505,8 +514,8 @@ def DeployFiles(destination):
     
     if (GetVerboseLevel() > 0): print "\tCopying files from {0} to {1}...".format(g_SourcePath, destination)
     
-    with open(os.devnull, "w") as fnull:
-        Result = subprocess.call(RsyncCmd, stderr=fnull, shell=False)
+    with open(os.devnull, "w") as fnull: #stderr=fnull,
+        Result = subprocess.call(RsyncCmd, shell=False)
         
     if (Result != 0):
         print "\tError: Rsync command returned {0}!".format(Result)
@@ -697,7 +706,6 @@ def ChangeSourcePermission():
             if (not Result): return False
 
     return True
-
 
 
 def ChangeDestPermission(destination):
@@ -912,6 +920,143 @@ def CreatePaths(destination):
     return True
 
 
+def CopyStagedFiles(destination, StagedPath):
+    global g_ErrorCount
+    
+    if (GetVerboseLevel() > 0): print "\tCopying files to the staging directory..."
+    
+    ServerName = ExtractServerName(destination)
+    PathName   = ExtractFileName(destination)
+    
+    if (ServerName):
+        FullStagedPath = ServerName + ':' + StagedPath
+    else:
+        FullStagedPath = StagedPath
+        
+    if (not DoMakePath(FullStagedPath)):
+        print "\tError: Failed to create the temporary staging path...aborting deployment!"
+        return False
+    
+    if (GetVerboseLevel() > 0): print "\tUsing staging directory {0}". format(FullStagedPath)
+    
+    RsyncCmd = 'rsync -a {2} {0} {1}'.format(destination, StagedPath, '-v' if (GetVerboseLevel() > 2) else '')
+    if (GetVerboseLevel() > 1): print "\tRsync command: {0}". format(RsyncCmd)
+    
+    ScpCmd = "scp -pqr {2} {0} {1}".format(destination, StagedPath, '-v' if (GetVerboseLevel() > 2) else '')
+    if (GetVerboseLevel() > 1): print "\tScp command: {0}". format(ScpCmd)
+    
+    childproc = subprocess.Popen(RsyncCmd, shell=True)
+    childproc.communicate()
+    Result = childproc.returncode
+        
+    if (Result != 0):
+        print "\tError: Failed to copy files to the staging directory!"
+        g_ErrorCount += 1
+        return False
+    
+    return True
+
+
+def SwitchStagedDeploy(destination, StagedPath):
+    global g_ErrorCount
+    
+    if (GetVerboseLevel() > 0): print "\tSwapping staged and original destination directories..."
+    
+    TmpPath = StagedPath[:-1] + '_tmp/'
+    ServerName = ExtractServerName(destination)
+    PathName = ExtractPathName(destination)
+    
+    MvCmd = 'mv {1} {2}; mv {3} {1}; mv {2} {3}'.format(ServerName, PathName, TmpPath, StagedPath)
+    SshCmd = ['ssh', '-t', ServerName, MvCmd]
+    if (GetVerboseLevel() > 1): print "\tSsh command: {0}". format(SshCmd)
+    
+    childproc = subprocess.Popen(SshCmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    childproc.communicate()
+    Result = childproc.returncode
+    
+    if (Result != 0):
+        print "\tError: Failed to swap staged and destination directories!"
+        g_ErrorCount += 1
+        return False
+    
+    if (GetVerboseLevel() > 0): print "\tOriginal destination stored at {0}...".format(StagedPath)
+    return True
+
+
+def DoOneDeployStaged(destination):
+    global g_DeployCount
+    global g_DeployDestCount
+    
+    ServerName = ExtractServerName(destination)
+    
+    if (IsLocalOnly()):
+        if (not MatchServerName(g_HostName, ServerName)):
+            if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
+            return True
+    elif (IsServerOnly()):
+        if (not MatchServerName(g_InputOptions.serveronly, ServerName)):
+            if (GetVerboseLevel() > 0): print "Skipping deployment to {0}.".format(destination)
+            return True
+    
+    print "Deploying to '{0}'...".format(destination)
+    
+    if (CompareSourceDestPaths(g_SourcePath, destination)):
+        print "\tWarning: The source and destination paths are the same...skipping deployment!"
+        return True
+    
+    StagedPath = GetBackupPath()
+    StagedPath += "{0}_{1}_{2}/".format(GetDeployParamValue("name"), ExtractServerName(destination), datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+    
+    if (ServerName):
+        FullStagedPath = ServerName + ':' + StagedPath
+    else:
+        FullStagedPath = StagedPath
+
+    g_DeployCount += 1
+    
+    if (not CopyStagedFiles(destination, StagedPath)):
+        DisplayError(destination, "\tError copying files to staged directory!")
+        return False
+
+    if (not DeployFiles(FullStagedPath)):
+        DisplayError(destination, "\tError copying files with rsync...aborting deployment!")
+        return False
+    
+    if (not CreatePaths(FullStagedPath)):
+        DisplayError(destination, "\tError creating paths...aborting deployment!")
+        return False
+    
+    if (not DeployManualCopy(FullStagedPath)):
+        DisplayError(destination, "\tError manually copying specific files...aborting deployment!")
+        return False
+
+    if (not DeployDeleteFiles(FullStagedPath)):
+        DisplayError(destination, "\tError deleting files from deployment path!")
+        return False
+    
+    if (not ChangeDestOwnership(FullStagedPath)):
+        DisplayError(destination, "Error changing ownership of destination files...aborting deployment!")
+        return False
+    
+    if (not ChangeDestPermission(FullStagedPath)):
+        DisplayError(destination, "Error changing permissions of destination files...aborting deployment!")
+        return False
+    
+    if (not AddLinesDest(FullStagedPath)):
+        DisplayError(destination, "Error adding lines to destination files...aborting deployment!")
+        return False
+    
+    if (not SwitchStagedDeploy(destination, StagedPath)):
+        print "\tCRITICAL: Failed to swap staging path with destination...things may be broken!"
+        return False
+
+    AddDeployLog(destination)
+    print "\tSuccessfully completed deployment!"
+    g_DeployDestCount += 1
+
+    return True
+
+
 def DoOneDeploy(destination):
     global g_DeployCount
     global g_DeployDestCount
@@ -1067,6 +1212,7 @@ def DoDeploy():
     os.chdir(CurrentPath)
     
     if (g_InputOptions.destination):
+        if (IsStaged()): return DoOneDeployStaged(g_InputOptions.destination)
         return DoOneDeploy(g_InputOptions.destination)
 
     AllDests = GetDeployParam("dest")
@@ -1079,7 +1225,11 @@ def DoDeploy():
 
     for destination in AllDests:
         if (len(destination) > 1):
-            DoOneDeploy(destination[1])
+            if (IsStaged()):
+                Result = DoOneDeployStaged(destination[1])
+            else:
+                Result = DoOneDeploy(destination[1])
+            if (not Result): return False
     
     for deployfile in AllDeployFiles:
         if (len(deployfile) > 1):

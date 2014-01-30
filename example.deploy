@@ -39,10 +39,21 @@ description = Collection of various scripts used by the UESP
 repository = https://code.google.com/p/uesp.scripts/
 
 #
+# staged = true | false
+#	If set to false (the default) then files will be copied directly to each
+#	destination path. When set to true the files will be copied to a temporary
+#	directory and only moved to the destination at the very end of the
+#	deployment (assuming no errors occurred). Staging is useful for larger
+#	and more complex installations where failure mid-deployment could break
+#	the application or if updating a live-application is not desired.
+#
+staged = true
+
+#
 # backup = true | false
 #	A boolean value indicating whether a backup of the original destination
-#	files should be performed. Default value is false and this can be overridden
-#	by the command line parameters.
+#	files should be performed. Default value is false. This value can be
+#	overridden by the command line parameters.
 #
 backup = false
 
