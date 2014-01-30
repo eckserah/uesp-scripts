@@ -111,7 +111,7 @@ dest = files1.uesp.net:/dev/null
 #
 #	NOTE: This feature requires the user to have sudo rights to chown
 #
-chown_source = :uespadmin -R *
+chown_source = :uespadmin -R  ./
 chown_source = :uespadmin somefile.txt
 
 #
@@ -123,10 +123,10 @@ chown_source = :uespadmin somefile.txt
 #	NOTE: This feature requires the user to have sudo rights to chown
 #
 chown_dest = :uespadmin {dest}somefile.txt
-chown_dest = :uespadmin {dest}	# Change the ownership of the root path
+chown_dest = :uespadmin {dest}				# Change the ownership of the root path
 
 #
-# chmod_dest = chmod params
+# chmod_source = chmod params
 #	This command simply takes the same parameters as the 'chmod' shell command to
 #	change the ownership of files/directories in the destination path. Generally you
 #	wish to change the ownership of all files to be world readable but some files may
@@ -135,9 +135,22 @@ chown_dest = :uespadmin {dest}	# Change the ownership of the root path
 #
 #	NOTE: This feature requires the user to have sudo rights to chmod
 #
+chmod_source = g+rw somefile.txt
+chmod_source = o-rwx -R ./
+chmod_source = g+rw,a+r ./
+
+#
+# chmod_dest = chmod params
+#	This is nearly identical to the chmod_source command except it takes 'chmod'
+#	commands to change the ownership of files on each destination. The value of
+#	'{dest}' is replaced with the destination path.
+#
+#	NOTE: This feature requires the user to have sudo rights to chmod
+#
 chmod_dest = g+rwx {dest}somefile.txt
 chmod_dest = o-rwx {dest}
-chmod_dest = a+r -R {dest}/*
+chmod_dest = a+r -R {dest}
+
 
 #
 # delete_dest = filespec

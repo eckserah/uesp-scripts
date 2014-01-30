@@ -653,6 +653,8 @@ def DoChangeRemotePermission(destination, chmodcmd):
 def ChangeSourceOwnership():
     ChownSources = GetDeployParam("chown_source")
     
+    if (GetVerboseLevel() > 0): print "\tChanging ownership on source..."
+    
     #if (GetVerboseLevel() > 0 and len(ChownSources) > 0):
         #print "Changing source ownership on {0} entries.".format(len(ChownSources))
         #print "Warning: Skipping changing source ownership on {0} entries!".format(len(ChownSources))
@@ -669,6 +671,8 @@ def ChangeSourceOwnership():
 def ChangeDestOwnership(destination):
     ChownDests = GetDeployParam("chown_dest")
     
+    if (GetVerboseLevel() > 0): print "\tChanging ownership on destination..."
+    
     #if (GetVerboseLevel() > 0 and len(ChownDests) > 0):
         #print "Changing destination ownership on {0} entries.".format(len(ChownDests))
         #print "Warning: Skipping changing destination ownership on {0} entries!".format(len(ChownDests))
@@ -682,8 +686,24 @@ def ChangeDestOwnership(destination):
     return True
 
 
+def ChangeSourcePermission():
+    ChmodSources = GetDeployParam("chmod_source")
+    
+    if (GetVerboseLevel() > 0): print "\tChanging permission on source..."
+
+    for chmodsource in ChmodSources:
+        if (len(chmodsource) > 1):
+            Result = DoChangePermission(chmodsource[1])
+            if (not Result): return False
+
+    return True
+
+
+
 def ChangeDestPermission(destination):
     ChmodDests = GetDeployParam("chmod_dest")
+    
+    if (GetVerboseLevel() > 0): print "\tChanging permission on destination..."
 
     for chmoddest in ChmodDests:
         if (len(chmoddest) > 1):
@@ -1031,9 +1051,20 @@ def DoDeploy():
     global g_ErrorCount
     global g_WarningCount
     
+    CurrentPath = os.getcwd()
+    os.chdir(g_SourcePath)
+    
     if (not ChangeSourceOwnership()):
         DisplayError("", "Error changing ownership of source files...aborting deployment!")
+        os.chdir(CurrentPath)
         return False
+    
+    if (not ChangeSourcePermission()):
+        DisplayError("", "Error changing permissions of source files...aborting deployment!")
+        os.chdir(CurrentPath)
+        return False
+    
+    os.chdir(CurrentPath)
     
     if (g_InputOptions.destination):
         return DoOneDeploy(g_InputOptions.destination)
