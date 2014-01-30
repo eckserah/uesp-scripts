@@ -47,6 +47,9 @@ repository = https://code.google.com/p/uesp.scripts/
 #	and more complex installations where failure mid-deployment could break
 #	the application or if updating a live-application is not desired.
 #
+#	Note that all staged deployments are backed up by default as the original
+#	destination directory is renamed to the backup path (on the destination server).
+#
 staged = true
 
 #
@@ -55,6 +58,8 @@ staged = true
 #	files should be performed. Default value is false. This value can be
 #	overridden by the command line parameters.
 #
+#	Note that a staged deployment is always backed up.
+#
 backup = false
 
 #
@@ -62,6 +67,9 @@ backup = false
 #	The path to save backups to if required. By default this is /tmp/ and each
 #	backup saved there will be under a unique path name using the name of the
 #	deployment source and the current timestamp.
+#
+#	Note that for a staged deployment the backup will be stored on the destination
+#	server. For an un-staged deployment the backup is made on the local server.
 #
 backuppath = /tmp/
 
