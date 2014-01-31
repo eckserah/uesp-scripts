@@ -119,7 +119,11 @@ def DoesPathExist(pathname):
     if (not ServerName): return os.path.exists(pathname)
     
     RemotePath = ExtractFileName(pathname)
-    return subprocess.call(['ssh', ServerName, 'test -d ' + pipes.quote(RemotePath)]) == 0
+    
+    Cmd = ['ssh', ServerName, 'test -d ' + pipes.quote(RemotePath)]
+    if (GetVerboseLevel() > 1): print "\tCmd: {0}".format(Cmd)
+    
+    return subprocess.call(Cmd) == 0
 
 
 def GetRevisionNumber():
@@ -292,6 +296,15 @@ def IsStaged():
     if (GetDeployParamValue("staged").lower() == "true"): return True
     if (g_InputOptions.staged): return True
 
+    return False
+
+
+def IsLocalhost(ServerName):
+    if (ServerName == ''): return True
+    if (ServerName == 'localhost'): return True
+    if (ServerName == '127.0.0.1'): return True
+    if (ServerName == g_HostName): return True
+    
     return False
 
 
@@ -470,6 +483,8 @@ def DoMakePath(path):
             return False
         
     else:
+        if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' exists.".format(path)
+        
         RemotePath = ExtractFileName(path)
         if (DoesPathExist(ServerName + ':' + RemotePath)): return True
         
