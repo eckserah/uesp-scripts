@@ -171,6 +171,11 @@ def CompareSourceDestPaths(source, dest):
     return True
 
 
+def StripLastSlash(path):
+    if (path.endswith('/')): return path[:-1]
+    return path
+
+
 def DisplayError(destination, errormsg):
     print errormsg
     AddDeployLog(destination, errormsg)
@@ -761,7 +766,7 @@ def DeployManualCopy(destination):
         ScpCmd = "scp -pqr "
         if (GetVerboseLevel() > 2): ScpCmd += "-v "
         ScpCmd += BaseCmd
-        if (GetVerboseLevel() > 1): print "\tRunning scp command: {0}".format(ScpCmd)
+        if (GetVerboseLevel() > 1): print "\tScp command: {0}".format(ScpCmd)
         
         childproc = subprocess.Popen(ScpCmd, shell=True)
         childproc.communicate()
@@ -925,6 +930,10 @@ def CopyStagedFiles(destination, StagedPath):
     
     if (GetVerboseLevel() > 0): print "\tCopying files to the staging directory..."
     
+    if (not DoMakePath(destination)):
+        print "\tError: The destination path does not exist and cannot be created!"
+        return False
+    
     ServerName = ExtractServerName(destination)
     PathName   = ExtractFileName(destination)
     
@@ -962,11 +971,11 @@ def SwitchStagedDeploy(destination, StagedPath):
     
     if (GetVerboseLevel() > 0): print "\tSwapping staged and original destination directories..."
     
-    TmpPath = StagedPath[:-1] + '_tmp/'
+    TmpPath = StagedPath[:-1] + '_tmp'
     ServerName = ExtractServerName(destination)
-    PathName = ExtractPathName(destination)
+    PathName = StripLastSlash(ExtractPathName(destination))
     
-    MvCmd = 'mv {1} {2}; mv {3} {1}; mv {2} {3}'.format(ServerName, PathName, TmpPath, StagedPath)
+    MvCmd = 'mv {1} {2}; mv {3} {1}; mv {2} {3}'.format(ServerName, PathName, TmpPath, StripLastSlash(StagedPath))
     SshCmd = ['ssh', '-t', ServerName, MvCmd]
     if (GetVerboseLevel() > 1): print "\tSsh command: {0}". format(SshCmd)
     
