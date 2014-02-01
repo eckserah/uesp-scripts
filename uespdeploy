@@ -912,6 +912,8 @@ def DoCreatePath(destination, pathname):
     global g_ErrorCount
     
     ServerName = ExtractServerName(destination)
+    DestPathName = ExtractFileName(destination)
+    pathname = pathname.replace('{dest}', DestPathName)
     
     if (GetVerboseLevel() > 0): print "\tCreating path '{0}' on destination {1}...".format(pathname, (ServerName if ServerName else localhost))
     
