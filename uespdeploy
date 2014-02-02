@@ -956,7 +956,7 @@ def CreateBackupPath(ServerName, BackupPath):
         
     if (GetVerboseLevel() > 1): print "\tEnsuring the backup path {0} exists...".format(FullBackupPath)
         
-    if (DoesPathExist(FullBackupPath)): 
+    if (not DoesPathExist(FullBackupPath)): 
         if (not DoMakePath(FullBackupPath)): return False
     
     if (not DoChangeRemoteOwnership(FullBackupPath, ":uespadmin {0}".format(BackupPath))):  return False
