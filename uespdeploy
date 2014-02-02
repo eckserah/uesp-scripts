@@ -116,7 +116,7 @@ def CloseDatabase():
 def DoesPathExist(pathname):
     ServerName = ExtractServerName(pathname)
     
-    if (not ServerName): return os.path.exists(pathname)
+    if (IsLocalhost(ServerName)): return os.path.exists(pathname)
     
     RemotePath = ExtractFileName(pathname)
     
@@ -416,6 +416,7 @@ def CreateBackup(destination):
     global g_LastBackupPath
     global g_ErrorCount
     
+    ServerName = ExtractServerName(destination)
     Pathname   = ExtractFileName(destination)
     
     if (Pathname == '/dev/null'):
@@ -425,6 +426,10 @@ def CreateBackup(destination):
     if (not DoesPathExist(destination)):
         print "\tSkipping backup of not existant destination '{0}'!".format(destination)
         return True
+    
+    if (not CreateBackupPath(ServerName, GetBackupPath())):
+        DisplayError(destination, "\tError creating the temporary path for staged deployment!")
+        return False
     
     print "\tCreating backup of existing source in '{0}'...".format(destination)
     BackupPath = GetBackupPath()
@@ -470,8 +475,8 @@ def DoMakePath(path):
             return False
         
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), path)
-        if (GetVerboseLevel() > 0): print "\tChanging the ownership of local path '{0}'...".format(path)
-        if (GetVerboseLevel() > 1): print "\tChown Cmd: {0}".format(Cmd)
+        if (GetVerboseLevel() > 1): print "\tChanging the ownership of local path '{0}'...".format(path)
+        if (GetVerboseLevel() > 2): print "\tChown Cmd: {0}".format(Cmd)
         
         chown = subprocess.Popen(Cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         chown.wait()
@@ -483,7 +488,7 @@ def DoMakePath(path):
             return False
         
     else:
-        if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' exists.".format(path)
+        if (GetVerboseLevel() > 0): print "\tEnsuring the remote path '{0}' exists on {1}...".format(path, ServerName)
         
         RemotePath = ExtractFileName(path)
         if (DoesPathExist(ServerName + ':' + RemotePath)): return True
@@ -491,8 +496,8 @@ def DoMakePath(path):
         Cmd = "sudo mkdir -p {0}".format(RemotePath, getpass.getuser())
         SshCmd = ["ssh", "-t", ServerName, Cmd];
         
-        if (GetVerboseLevel() > 0): print "\tCreating the remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
-        if (GetVerboseLevel() > 1): print "\tMkdir Cmd: {0}".format(SshCmd)
+        if (GetVerboseLevel() > 1): print "\tCreating the remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
+        if (GetVerboseLevel() > 2): print "\tMkdir Cmd: {0}".format(SshCmd)
         
         ssh = subprocess.Popen(SshCmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
@@ -506,8 +511,8 @@ def DoMakePath(path):
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), RemotePath)
         SshCmd = ["ssh", "-t", ServerName, Cmd];
         
-        if (GetVerboseLevel() > 0): print "\tChanging the ownership of remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
-        if (GetVerboseLevel() > 1): print "\tChown Cmd: {0}".format(SshCmd)
+        if (GetVerboseLevel() > 1): print "\tChanging the ownership of remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
+        if (GetVerboseLevel() > 2): print "\tChown Cmd: {0}".format(SshCmd)
         
         ssh = subprocess.Popen(SshCmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ssh.wait()
@@ -638,7 +643,7 @@ def DoChangeRemoteOwnership(destination, chowncmd):
     
     if (not ServerName): return DoChangeOwnership(BaseCmd)
     
-    Cmd = "ssh -t -q {0} 'sudo chown {1}'".format(ServerName, BaseCmd)
+    Cmd = "ssh -t -q {0} sudo chown {1}".format(ServerName, BaseCmd)
     if (GetVerboseLevel() > 1): print "\tRemote Chown Command: {0}".format(Cmd)
     
     childproc = subprocess.Popen(Cmd, shell=True)
@@ -663,7 +668,7 @@ def DoChangeRemotePermission(destination, chmodcmd):
     
     if (not ServerName): return DoChangePermission(BaseCmd)
     
-    Cmd = "ssh -t -q {0} 'sudo chmod {1}'".format(ServerName, BaseCmd)
+    Cmd = "ssh -t -q {0} sudo chmod {1}".format(ServerName, BaseCmd)
     if (GetVerboseLevel() > 1): print "\tRemote Chmod Command: {0}".format(Cmd)
     
     childproc = subprocess.Popen(Cmd, shell=True)
@@ -942,6 +947,25 @@ def CreatePaths(destination):
     return True
 
 
+def CreateBackupPath(ServerName, BackupPath):
+    
+    if (IsLocalhost(ServerName)):
+        FullBackupPath = BackupPath
+    else:
+        FullBackupPath = ServerName + ':' + BackupPath
+        
+    if (GetVerboseLevel() > 1): print "\tEnsuring the backup path {0} exists...".format(FullBackupPath)
+        
+    if (DoesPathExist(FullBackupPath)): 
+        if (not DoMakePath(FullBackupPath)): return False
+    
+    if (not DoChangeRemoteOwnership(FullBackupPath, ":uespadmin {0}".format(BackupPath))):  return False
+    if (not DoChangeRemotePermission(FullBackupPath, "g+rw {0}".format(BackupPath))): return False
+    
+    return True
+
+
+
 def CopyStagedFiles(destination, StagedPath):
     global g_ErrorCount
     
@@ -1030,6 +1054,10 @@ def DoOneDeployStaged(destination):
         print "\tWarning: The source and destination paths are the same...skipping deployment!"
         return True
     
+    if (not CreateBackupPath(ServerName, GetBackupPath())):
+        DisplayError(destination, "\tError creating the temporary path for staged deployment!")
+        return False
+    
     StagedPath = GetBackupPath()
     StagedPath += "{0}_{1}_{2}/".format(GetDeployParamValue("name"), ExtractServerName(destination), datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     
@@ -1075,7 +1103,7 @@ def DoOneDeployStaged(destination):
     if (not SwitchStagedDeploy(destination, StagedPath)):
         print "\tCRITICAL: Failed to swap staging path with destination...things may be broken!"
         return False
-
+    
     AddDeployLog(destination)
     print "\tSuccessfully completed deployment!"
     g_DeployDestCount += 1
