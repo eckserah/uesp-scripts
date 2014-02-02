@@ -64,14 +64,14 @@ backup = false
 
 #
 # backuppath = path
-#	The path to save backups to if required. By default this is /tmp/ and each
+#	The path to save backups to if required. By default this is /deploytmp/ and each
 #	backup saved there will be under a unique path name using the name of the
 #	deployment source and the current timestamp.
 #
 #	Note that for a staged deployment the backup will be stored on the destination
 #	server. For an un-staged deployment the backup is made on the local server.
 #
-backuppath = /tmp/
+backuppath = /deploytmp/
 
 #
 # verbosity = integer

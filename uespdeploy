@@ -30,7 +30,7 @@ import pipes
 SECRETS_FILE = "/home/uesp/secrets/uespdeploy.secrets"
 DEFAULT_DEPLOY = "uesp.deploy"
 DEFAULT_SOURCEPATH = "./"
-DEFAULT_BACKUPPATH = "/tmp/"
+DEFAULT_BACKUPPATH = "/deploytmp/"
 COMMENT_CHAR = '#'
 
 DB_DATABASE = "uesp_deploy"
