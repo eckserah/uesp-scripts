@@ -221,7 +221,7 @@ def AddDeployLog(destination, error=""):
 
 
 def ParseInputArgs():
-    parser = OptionParser(usage="usage: %prog [options] [deployname]", version='v0.1 28 Jan 2014')
+    parser = OptionParser(usage="usage: %prog [options] [deployname]", version='v0.11 1 December 2014')
     parser.add_option("-v", "--verbosity",  action="count",         dest="verbose",     help="increase output verbosity")
     parser.add_option("-s", "--source",     action="store",         dest="source",      help="path to the source being deployed (defaults to the current local directory)", type="string")
     parser.add_option("-d", "--destination",action="store",         dest="destination", help="destination path for the installation", type="string")
@@ -989,11 +989,18 @@ def CopyStagedFiles(destination, StagedPath):
     
     if (GetVerboseLevel() > 0): print "\tUsing staging directory {0}". format(FullStagedPath)
     
-    RsyncCmd = 'rsync -a {2} {0} {1}'.format(destination, StagedPath, '-v' if (GetVerboseLevel() > 2) else '')
+    IgnoreFiles = GetDeployParam("ignore")
+    ExcludeCmd = ""
+    
+    for file in IgnoreFiles:
+        if (len(file) <= 1): continue
+        ExcludeCmd += "--exclude={0} ".format(file[1])
+    
+    RsyncCmd = 'rsync -a {3} {2} {0} {1}'.format(destination, StagedPath, '-v' if (GetVerboseLevel() > 2) else '', ExcludeCmd)
     if (GetVerboseLevel() > 1): print "\tRsync command: {0}". format(RsyncCmd)
     
-    ScpCmd = "scp -pqr {2} {0} {1}".format(destination, StagedPath, '-v' if (GetVerboseLevel() > 2) else '')
-    if (GetVerboseLevel() > 1): print "\tScp command: {0}". format(ScpCmd)
+    #ScpCmd = "scp -pqr {2} {0} {1}".format(destination, StagedPath, '-v' if (GetVerboseLevel() > 2) else '')
+    #if (GetVerboseLevel() > 1): print "\tScp command: {0}". format(ScpCmd)
     
     childproc = subprocess.Popen(RsyncCmd, shell=True)
     childproc.communicate()

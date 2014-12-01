@@ -84,9 +84,9 @@ verbosity = 0
 #
 # ignore = filespec
 #	You can have multiple ignore line which specifies a file or files to ignore
-#	when copying the source to the destination. This is simply a file specification
-#	which will be relative to the source path. The usual shell wildcards of * and
-#	? are supported. 
+#	when copying the source to the destination or to the backup. This is simply a
+#	file specification which will be relative to the source path. The usual shell
+#	wildcards of * and ? are supported.
 #
 ignore = *.deploy
 ignore = .hg*
