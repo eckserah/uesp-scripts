@@ -1,0 +1,12 @@
+#!/bin/sh
+
+ZABBIX_SERVER_RUNNING=`ps aux | grep [z]abbix_server -c`
+
+if [ "$ZABBIX_SERVER_RUNNING" -ne "0" ]
+then
+	echo "zabbix_server still running (found $ZABBIX_SERVER_RUNNING processes)..."
+	exit 0
+fi
+
+echo "ISSUE: zabbix_server NOT running!"
+echo "No process matching 'zabbix_server' was found running on content3.uesp.net!" | mail -s "ISSUE: Zabbix Server on content3 Not Running!" dave@uesp.net -- -f zabbix@uesp.net
