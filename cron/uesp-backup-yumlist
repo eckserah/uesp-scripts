@@ -1,0 +1,5 @@
+#!/bin/sh
+HOSTNAME=`hostname`
+
+yum list installed > /home/backup/conf/$HOSTNAME-yumlist.txt
+
