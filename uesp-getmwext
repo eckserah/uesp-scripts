@@ -1,0 +1,48 @@
+#!/bin/sh
+# https://github.com/wikimedia/mediawiki-extensions-Disambiguator/archive/REL1_24.zip
+# mediawiki-extensions-Disambiguator-REL1_24
+
+BASESITE="https://github.com/wikimedia/mediawiki-extensions-"
+EXTNAME="$1"
+EXTVERSION="$2"
+OLDPATH="mediawiki-extensions-$EXTNAME-REL$EXTVERSION"
+
+if [ -z "$EXTNAME" ]; then
+	echo "ERROR: Missing required extension name..."
+	exit -1
+fi
+
+if [ -z "$EXTVERSION" ]; then
+	echo "ERROR: Missing required extension version..."
+	exit -2
+fi
+
+URL="$BASESITE$EXTNAME/archive/REL$EXTVERSION.zip"
+OUTPUTFILE="$EXTNAME.zip"
+
+echo "Attempting to download MediaWiki extension $EXTNAME v$EXTVERSION..."
+
+wget -q "$URL" -O "$OUTPUTFILE"
+
+if [ $? -ne 0 ]; then
+	echo "ERROR: Failed to download from $URL!"
+	exit -3
+fi
+
+unzip -o -q "$OUTPUTFILE"
+
+if [ $? -ne 0 ]; then
+	echo "ERROR: Failed to unzip $OUTPUTFILE!"
+	exit -4
+fi
+
+NEWPATH="$EXTNAME"
+rm -rf "$NEWPATH"
+mv -f "$OLDPATH" "$NEWPATH"
+
+if [ $? -ne 0 ]; then
+	echo "ERROR: Failed to move outout directory $OLDPATH!"
+	exit -5
+fi
+
+echo "Successfully uncompressed MediaWiki extension to $NEWPATH..."
