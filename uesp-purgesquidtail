@@ -1,0 +1,35 @@
+#!/bin/sh
+
+LOGFILE="/var/log/squid/access.log"
+RESULTTYPE="$1"
+NUMLINES="$2"
+
+if [ ! -f "$LOGFILE" ]; then
+    echo "Squid log file not found!"
+    exit 1
+fi
+
+if [ -z "$NUMLINES" ]; then
+	NUMLINES="1000000"
+fi
+
+
+if [[ $RESULTTYPE == "" ]]; then
+	echo "Purging bad hits (500) from last $NUMLINES lines in Squid log file..."
+	tail -n "$NUMLINES" "$LOGFILE" | grep /500 | awk '{print $7}' | sort | uniq | xargs -n1 /home/uesp/scripts/uesp-purgesquid
+elif [[ $RESULTTYPE == "500" ]]; then
+	echo "Purging bad hits (500) from last $NUMLINES lines in Squid log file..."
+	tail -n "$NUMLINES" "$LOGFILE" | grep /500 | awk '{print $7}' | sort | uniq |  xargs -n1 /home/uesp/scripts/uesp-purgesquid
+elif [[ $RESULTTYPE == "200" ]]; then
+	echo "Purging good hits (200) from last $NUMLINES lines in Squid log file..."
+	tail -n "$NUMLINES" "$LOGFILE" | grep /200 | awk '{print $7}' | sort | uniq |  xargs -n1 /home/uesp/scripts/uesp-purgesquid
+elif [[ $RESULTTYPE == "300" ]]; then
+	echo "Purging redirects (301) from last $NUMLINES lines in Squid log file..."
+	tail -n "$NUMLINES" "$LOGFILE" | grep /301 | awk '{print $7}' | sort | uniq |  xargs -n1 /home/uesp/scripts/uesp-purgesquid	
+elif [[ $RESULTTYPE == "" ]]; then
+	echo "Purging all pages from last $NUMLINES lines in Squid log file..."
+	tail -n "$NUMLINES" "$LOGFILE" | awk '{print $7}' | sort | uniq |  xargs -n1 /home/uesp/scripts/uesp-purgesquid
+else	
+	echo "Unknown HTTP result code $RESULTTYPE! Use one of: 200, 300, 500"
+	exit 2
+fi

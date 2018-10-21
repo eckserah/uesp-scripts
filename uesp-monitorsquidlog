@@ -1,0 +1,19 @@
+#!/bin/sh
+
+LOGFILE="/var/log/squid/access.log"
+
+if [ ! -f "$LOGFILE" ]; then
+    echo "Squid log file not found!"
+    exit 1
+fi
+
+tail -fn0 "$LOGFILE"  | \
+while read line ; do
+	echo "$line" | grep TCP_NEGATIVE_HIT | grep -v index.php
+	if [ $? = 0 ]
+	then
+		page=`echo "$line" | awk '{print $7}'`
+	    echo "Purging $page..."
+	    /home/uesp/scripts/uesp-purgesquid $page
+	fi
+done

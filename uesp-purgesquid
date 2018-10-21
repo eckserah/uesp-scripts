@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if ! [ -x "$(command -v squidclient)" ]; then
+	echo 'Error: squidclient is not installed.'
+	exit 1
+fi
+
+result=`squidclient -h 10.7.143.40 -p 80 -m PURGE -H "Accept-Encoding: gzip, deflate, br\n" $1 $2`
+echo "Return: $?"
+echo "Squid Result: $result"
