@@ -1,0 +1,29 @@
+#!/bin/bash
+
+IP=/home/uesp/dev/www/w
+RJ=$IP/maintenance/runJobs.php
+
+pushd $IP
+
+echo Starting dev job service...
+# Wait a minute after the server starts up to give other processes time to get started
+sleep 6
+echo Started.
+
+while true; do
+		# Job types that need to be run ASAP mo matter how many of them are in the queue
+		# Those jobs should be very "cheap" to run
+	php $RJ --type="enotifNotify" --uesplang=en --uespdev
+	php $RJ --type="htmlCacheUpdate" --maxjobs=50 --uesplang=en  --uespdev
+	
+		# Everything else, limit the number of jobs on each batch
+		# The --wait parameter will pause the execution here until new jobs are added,
+		# to avoid running the loop without anything to do
+	php $RJ --wait --maxjobs=10 --uesplang=en --uespdev
+	
+		# Wait some seconds to let the CPU do other things, like handling web requests, etc
+	echo Waiting for 5 seconds...
+	sleep 5
+done
+
+popd

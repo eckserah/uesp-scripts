@@ -13,22 +13,26 @@ echo Started.
 while true; do
 		# Job types that need to be run ASAP mo matter how many of them are in the queue
 		# Those jobs should be very "cheap" to run
-	php $RJ --type="enotifNotify" --uesplang=en
-	php $RJ --type="htmlCacheUpdate" --maxjobs=50 --uesplang=en
+	php $RJ --type="enotifNotify" --memory-limit=max --uesplang=en
+	php $RJ --type="htmlCacheUpdate" --maxjobs=50  --memory-limit=max --uesplang=en
 	
 		# Everything else, limit the number of jobs on each batch
 		# The --wait parameter will pause the execution here until new jobs are added,
 		# to avoid running the loop without anything to do
-	php $RJ --wait --maxjobs=10 --uesplang=en
+	php $RJ --wait --maxjobs=10  --memory-limit=max --uesplang=en
 	
 		# Unsure if I have to run seperate jobs for the translation project wikis
-	php $RJ --type="enotifNotify" --uesplang=pt
-	php $RJ --type="htmlCacheUpdate" --maxjobs=50 --uesplang=pt
-	php $RJ --wait --maxjobs=10 --uesplang=pt
+	php $RJ --type="enotifNotify"  --memory-limit=max --uesplang=pt
+	php $RJ --type="htmlCacheUpdate" --maxjobs=50  --memory-limit=max --uesplang=pt
+	php $RJ --wait --maxjobs=10  --memory-limit=max --uesplang=pt
 	
-	php $RJ --type="enotifNotify" --uesplang=it
-	php $RJ --type="htmlCacheUpdate" --maxjobs=50 --uesplang=it
-	php $RJ --wait --maxjobs=10 --uesplang=it
+	php $RJ --type="enotifNotify"  --memory-limit=max --uesplang=it
+	php $RJ --type="htmlCacheUpdate" --maxjobs=50  --memory-limit=max --uesplang=it
+	php $RJ --wait --maxjobs=10  --memory-limit=max --uesplang=it
+	
+	php $RJ --type="enotifNotify"  --memory-limit=max --uesplang=ar
+	php $RJ --type="htmlCacheUpdate" --maxjobs=50  --memory-limit=max --uesplang=ar
+	php $RJ --wait --maxjobs=10  --memory-limit=max --uesplang=ar
 	
 		# Wait some seconds to let the CPU do other things, like handling web requests, etc
 	echo Waiting for 5 seconds...
