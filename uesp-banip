@@ -1,0 +1,166 @@
+#!/bin/sh
+#
+# uesp-banip
+#
+# Helper script to ban/unban IPs on the server using iptables.
+#
+# Basic Usage:
+#
+#       uesp-banip
+#               Lists help and command options.
+#
+#       uesp-banip list
+#               Lists all currently banned IPs on the server.
+#
+#       uesp-banip ban   IPADDRESS
+#       uesp-banip unban IPADDRESS
+#               Bans/unbans the given IP address (must be a single valid IP4 address).
+#
+#
+#
+
+
+function displayhelp() {
+        echo "Bans/unbans an IP address on the current server using iptables."
+        echo "  uesp-banip"
+        echo "          Lists help and command options."
+        echo "  uesp-banip list"
+        echo "          Lists all currently banned IPs on the server."
+        echo "  uesp-banip ban   IPADDRESS"
+        echo "  uesp-banip unban IPADDRESS"
+        echo "          Bans/unbans the given IP address (must be a single valid IP4 address)."
+}
+
+
+function checkip() {
+        IP="$1"
+
+        if [ -z $IP ]
+        then
+                echo "ERROR: No IP address specified!"
+                return 0
+        fi
+
+        IPCHECK=`echo "$IP" | egrep '^[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}$' `
+
+        if [ -z $IPCHECK ]
+        then
+                echo "ERROR: Input parameter '$IP' is not a valid IP4 address!"
+                return 0
+        fi
+
+        LOCALCHECK=`echo "$IP" | egrep '^127\.0\.0\.[[:digit:]]{1,3}$' `
+
+        if [ ! -z $LOCALCHECK ]
+        then
+                echo "ERROR: Cannot ban localhost IP address '$IP'!"
+                return 0
+        fi
+
+        UESPCHECK=`echo "$IP" | egrep '^10\.2\.212\..*$' `
+
+        if [ ! -z $UESPCHECK ]
+        then
+                echo "ERROR: Cannot ban local UESP subnet IP address '$IP'!"
+                return 0
+        fi
+
+        return 1
+}
+
+
+function promptuser(){
+
+        while true; do
+                read -p "Do you really wish to $1 the IP address $2 (Y/N)? " yn
+                case $yn in
+                        [Yy]* ) break;;
+                        [Nn]* ) exit;;
+                        * ) echo "Please answer yes or no.";;
+                esac
+        done
+
+}
+
+
+function listbans() {
+        echo "Listing all IP blocks on current server:"
+        echo ""
+        iptables -L INPUT -n -v
+}
+
+
+function findbannedip() {
+
+        RESULT=`iptables -L INPUT -n | egrep "[[:space:]]$1[[:space:]]"`
+
+        if [ -z "$RESULT" ]
+        then
+                echo "The IP address '$1' is not currently banned."
+                return 1
+        fi
+
+        return 0
+}
+
+
+function banip() {
+
+        if checkip $1 ; then
+                return 1
+        fi
+
+        promptuser "ban" $1
+
+        echo "Banning '$1'...."
+        iptables -A INPUT -s "$1" -j DROP
+
+        if [ $? != 0 ]
+        then
+                echo "ERROR: Failed to ban the IP address!"
+                exit 1
+        fi
+}
+
+
+function unbanip() {
+
+        if checkip $1 ; then
+                return 1
+        fi
+
+        promptuser "unban" $1
+
+        if ! findbannedip $1 ; then
+                exit 1
+        fi
+
+        echo "Unbanning '$1'..."
+        iptables -D INPUT -s "$1" -j DROP
+
+        if [ $? != 0 ]
+        then
+                echo "ERROR: Failed to ban the IP address!"
+                exit 1
+        fi
+}
+
+INPUTOPTION="$1"
+IPADDRESS="$2"
+
+if [ -z $INPUTOPTION ]
+then
+        displayhelp
+elif [ $INPUTOPTION == "list" ]
+then
+        listbans
+elif [ $INPUTOPTION == "ban" ]
+then
+        banip "$IPADDRESS"
+elif [ $INPUTOPTION == "unban" ]
+then
+        unbanip "$IPADDRESS"
+else
+        echo "ERROR: Unknown option '$INPUTOPTION' specified!"
+        displayhelp
+fi
