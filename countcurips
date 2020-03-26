@@ -1,0 +1,4 @@
+#!/bin/sh
+  
+netstat -an | egrep "^tcp|^udp" | grep "ESTABLISHED" | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
+

@@ -1,0 +1,4 @@
+#!/bin/sh
+  
+netstat -an | egrep "^tcp|^udp" | grep "WAIT" | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
+

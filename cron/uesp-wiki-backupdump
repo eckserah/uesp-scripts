@@ -1,0 +1,45 @@
+#!/bin/sh
+
+OUTPUTPATH="/home/backup/uespdumps/current"
+WIKIPATH="/home/uesp/www/w"
+NOW=$(date +"%Y-%m-%d")
+OUTPUT="$OUTPUTPATH/uespwiki-$NOW-current.xml"
+LOGFILE="/var/log/uespdump.log"
+
+function onerror(){
+        local MSG=$1
+        local RESULT=$2
+
+        echo -e "$MSG\nError Code = $RESULT" | mail -s "Error: XML Dump Failed" dave@uesp.net
+}
+
+echo "Dumping current page XML backup to $OUTPUT..."
+echo "Dumping current page XML backup to $OUTPUT..." >>$LOGFILE
+
+pushd "$WIKIPATH" > /dev/null
+
+mysql --defaults-file=/home/backup/backup-cred.cnf -h content3.uesp.net -u backup -e "STOP SLAVE;"
+
+/usr/bin/time -o $LOGFILE -a -p php ./maintenance/dumpBackup.php --report=1000 --current --uploads > $OUTPUT 2>>$LOGFILE
+RESULT=$?
+
+mysql --defaults-file=/home/backup/backup-cred.cnf -h content3.uesp.net -u backup -e "START SLAVE;"
+
+if [ $RESULT -ne 0 ]
+then
+        onerror "Failed to dump XML backup!" $RESULT
+        exit 1
+fi
+
+echo "Compressing dump file..." >>$LOGFILE
+/usr/bin/time -o $LOGFILE -a -p bzip2 -f $OUTPUT 2>>$LOGFILE
+RESULT=$?
+
+if [ $RESULT -ne 0 ]
+then
+        onerror "Failed to compress XML backup!" $RESULT
+        exit 1
+fi
+
+echo "Finished!" >>$LOGFILE
+popd > /dev/null

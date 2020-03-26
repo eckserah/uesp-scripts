@@ -1,0 +1,74 @@
+#!/bin/sh
+
+DENYHOST_SERVICE="/etc/init.d/denyhosts"
+DENYHOST_PATH="/usr/share/denyhosts"
+HOSTS_DENY="/etc/hosts.deny"
+
+function removeipfile() {
+	file="$1"
+	ipaddress="$2"
+
+	if [ ! -f $file ]; then
+		echo "Error: File '$file' does not exist!"
+		return
+	fi
+
+	grep "$ipaddress" "$file"
+
+	if [[ $? -ne 0 ]]; then
+		echo "Warning: Address '$ipaddress' not found in file '$file'!"
+		return
+	fi
+
+	sed -i "/$ipaddress/d" $file
+
+	if [[ $? -ne 0 ]]; then
+		echo "Warning: Failed to remove address '$ipaddress' from file '$file'!"
+	fi
+
+	echo "Removed address '$ipaddress' from '$file'..."
+}
+
+function removeip() {
+	ipaddress="$1"
+	
+	if ! [[ $ipaddress =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+                echo "Error: '$ipaddress' is not a valid IP address!"
+                return
+        fi
+
+	removeipfile $HOSTS_DENY $ipaddress
+	removeipfile "$DENYHOST_PATH/data/hosts" $ipaddress
+	removeipfile "$DENYHOST_PATH/data/hosts-restricted" $ipaddress
+	removeipfile "$DENYHOST_PATH/data/hosts-root" $ipaddress
+	removeipfile "$DENYHOST_PATH/data/hosts-valid" $ipaddress
+	removeipfile "$DENYHOST_PATH/data/users-hosts" $ipaddress
+	
+}
+
+if [[ $# -le 0 ]]; then
+	echo "Error: Missing one or more input IP addresses!"
+	echo "       Command format: uesp-removeip-denyhost <ipaddress>"
+	exit 2
+fi
+
+$DENYHOST_SERVICE stop
+
+if [[ $? -ne 0 ]]; then
+	echo "Warning: Failed to stop the denyhosts service!"
+fi
+
+for ipaddress in "$@"
+do
+	removeip $ipaddress
+done
+
+
+$DENYHOST_SERVICE start
+
+if [[ $? -ne 0 ]]; then
+	echo "Error: Failed to restart the denyhosts service!"
+	exit 1
+fi
+
+echo "Successfully restarted the denyhosts service."
