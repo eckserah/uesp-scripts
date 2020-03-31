@@ -7,7 +7,7 @@ name = uesp.scripts
 description = Collection of various scripts used by the UESP
 repository = https://code.google.com/p/uesp.scripts/
 backup = false
-backuppath = /tmp/
+backuppath = /deploytmp/
 verbosity = 0
 
 ignore = *.deploy
@@ -20,7 +20,7 @@ dest = files1.uesp.net:/home/uesp/scripts/
 dest = db1.uesp.net:/home/uesp/scripts/
 dest = db2.uesp.net:/home/uesp/scripts/
 dest = squid1.uesp.net:/home/uesp/scripts/
-dest = squid2.uesp.net:/home/uesp/scripts/
+dest = backup1.uesp.net:/home/uesp/scripts/
 
 chown_source = :uespadmin -R *
 
