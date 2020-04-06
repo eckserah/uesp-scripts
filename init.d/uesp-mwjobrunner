@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# chkconfig: 345 50 60
+# description: uesp-mwjobrunner for handling wiki job updates.
+#
+
+JOBRUNNER_BIN="/home/uesp/scripts/uesp-mwjobrunner"
+JOBRUNNER_LOG="/var/log/httpd/uespjobs.log"
+JOBRUNNER_USER="apache"
+JOBRUNNER_PID="/var/run/uesp-mwjobrunner.pid"
+
+case "$1" in 
+start)
+   runuser -l $JOBRUNNER_USER -c "$JOBRUNNER_BIN >>$JOBRUNNER_LOG 2>&1" &
+   echo $!>$JOBRUNNER_PID
+   ;;
+stop)
+   kill `cat $JOBRUNNER_PID`
+   rm $JOBRUNNER_PID
+   ;;
+restart)
+   $0 stop
+   $0 start
+   ;;
+reload)
+   $0 stop
+   $0 start
+   ;;   
+status)
+   if [ -e $JOBRUNNER_PID ]; then
+      echo uesp-mwjobrunner is running, pid=`cat $JOBRUNNER_PID`
+   else
+      echo uesp-mwjobrunner is NOT running
+      exit 1
+   fi
+   ;;
+*)
+   echo "Usage: $0 {start|stop|status|restart|reload}"
+esac
+
+
+exit 0
