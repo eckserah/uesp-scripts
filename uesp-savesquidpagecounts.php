@@ -114,7 +114,7 @@ class CSaveUespSquidPageCounts
 						pageCount INTEGER NOT NULL,
 						PRIMARY KEY (pageName(128)),
 						INDEX countIndex(pageCount)
-				);";
+				)  ENGINE=MYISAM;";
 		$result = $this->db->query($query);
 		if ($result === false) return $this->ReportError("Failed to create the popularPageCounts table! {$this->db->error}");
 

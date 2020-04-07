@@ -87,7 +87,7 @@ def CreateDeployTable():
                 error TEXT NOT NULL,
                 message TEXT NOT NULL
                 """
-    QueryStr = HeaderStr + TableDef + ");"
+    QueryStr = HeaderStr + TableDef + ") ENGINE=MYISAM;"
     if (GetVerboseLevel() >= 2): print "\t{0}".format(QueryStr)
     g_DB.query(QueryStr)
     return True
