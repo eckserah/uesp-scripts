@@ -297,6 +297,14 @@ def IsStaged():
     if (g_InputOptions.staged): return True
 
     return False
+    
+    
+def IsRunDeployFiles():    
+    global g_InputOptions
+    
+    if (GetDeployParamValue("rundeployfiles").lower() == "true"): return True
+
+    return False
 
 
 def IsLocalhost(ServerName):
@@ -1266,7 +1274,7 @@ def DoNamedDeployFile():
     
 	AllDeployFiles = GetDeployParam("deployfile")
 
-	if (len(AllDeployFiles) == 0):
+	if (len(AllDeployFiles) == 0 or g_DeployName == ""):
 		print "Error: No deployment destinations specified!"
 		g_ErrorCount += 1
 		return False
@@ -1317,9 +1325,10 @@ def DoDeploy():
                 Result = DoOneDeploy(destination[1])
             if (not Result): return False
     
-    for deployfile in AllDeployFiles:
-        if (len(deployfile) > 1):
-            RunDeployFile(deployfile[1])
+    if (IsRunDeployFiles()):
+	    for deployfile in AllDeployFiles:
+	        if (len(deployfile) > 1):
+	            RunDeployFile(deployfile[1])
     
     if (len(AllDeployFiles) > 0): return True
     

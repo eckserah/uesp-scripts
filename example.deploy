@@ -235,6 +235,16 @@ deployfile = wiki:/wiki/
 deployfile = test:/debug/debug.deploy
 
 #
+# rundeployfiles = true | false
+#	When set to true all "deployfile" lines will be run by default except when a
+#	specific deployfile name is specified on the command line. When set to false
+#	"deployfile" lines will only be run when specifically named on the command line.
+#
+#	Default is false.
+# 
+rundeployfiles = false
+
+#
 # createpath = pathname
 #	Creates the specified absolute pathname on each destination.
 #
