@@ -36,7 +36,7 @@ description = Collection of various scripts used by the UESP
 #	A link to the hg remote repository. This is required if a clean install
 #	or clone of the repository needs to be performed.
 #
-repository = https://code.google.com/p/uesp.scripts/
+repository = https://github.com/uesp/uesp-scripts
 
 #
 # staged = true | false
@@ -90,6 +90,7 @@ verbosity = 0
 #
 ignore = *.deploy
 ignore = .hg*
+ignore = .git*
 
 #
 # source = path
