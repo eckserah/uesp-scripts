@@ -72,7 +72,7 @@ def LoadSecrets():
 def CreateDeployTable():
     if (GetVerboseLevel()): print "Creating table {0}.{1}".format(DB_DATABASE, DB_TABLE)
     
-    HeaderStr = "CREATE TABLE {0}.{1} (".format(DB_DATABASE, DB_TABLE);
+    HeaderStr = "CREATE TABLE {0}.{1} (".format(DB_DATABASE, DB_TABLE)
     TableDef = """
                 id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(64) NOT NULL,
@@ -254,7 +254,7 @@ def GetDeployParam(Param):
 
 def GetHostName():
     global g_InputOptions
-    if (g_InputOptions.hostname): return g_InputOptions.hostname;
+    if (g_InputOptions.hostname): return g_InputOptions.hostname
     return socket.gethostname()
 
 
@@ -318,7 +318,7 @@ def IsLocalhost(ServerName):
 
 def GetBackupPath():
     global g_InputOptions    
-    BackupPath = g_InputOptions.backuppath;
+    BackupPath = g_InputOptions.backuppath
     
     if (BackupPath):
         if (not BackupPath.endswith('/')): BackupPath += '/'
@@ -354,13 +354,13 @@ def GetSourcePath():
 
 def ExtractServerName(path):
     TmpSplit = path.split(':', 1)
-    if (len(TmpSplit) == 1): return "localhost";
+    if (len(TmpSplit) == 1): return "localhost"
     return TmpSplit[0]
 
 
 def ExtractFileName(path):
     TmpSplit = path.split(':', 1)
-    if (len(TmpSplit) == 1): return TmpSplit[0];
+    if (len(TmpSplit) == 1): return TmpSplit[0]
     return TmpSplit[1]
 
 
@@ -502,7 +502,7 @@ def DoMakePath(path):
         if (DoesPathExist(ServerName + ':' + RemotePath)): return True
         
         Cmd = "sudo mkdir -p {0}".format(RemotePath, getpass.getuser())
-        SshCmd = ["ssh", "-t", ServerName, Cmd];
+        SshCmd = ["ssh", "-t", ServerName, Cmd]
         
         if (GetVerboseLevel() > 1): print "\tCreating the remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
         if (GetVerboseLevel() > 2): print "\tMkdir Cmd: {0}".format(SshCmd)
@@ -517,7 +517,7 @@ def DoMakePath(path):
             return False
         
         Cmd = "sudo chown {0}:{0} {1}".format(getpass.getuser(), RemotePath)
-        SshCmd = ["ssh", "-t", ServerName, Cmd];
+        SshCmd = ["ssh", "-t", ServerName, Cmd]
         
         if (GetVerboseLevel() > 1): print "\tChanging the ownership of remote path '{0}' on '{1}'...".format(RemotePath, ServerName)
         if (GetVerboseLevel() > 2): print "\tChown Cmd: {0}".format(SshCmd)
@@ -695,7 +695,7 @@ def DoChangeRemotePermission(destination, chmodcmd):
 def ChangeSourceOwnership():
     ChownSources = GetDeployParam("chown_source")
     
-    if (GetVerboseLevel() > 0): print "\tChanging ownership on source..."
+    if (GetVerboseLevel() > 0 and len(ChownSources) > 0): print "\tChanging ownership on source..."
     
     #if (GetVerboseLevel() > 0 and len(ChownSources) > 0):
         #print "Changing source ownership on {0} entries.".format(len(ChownSources))
@@ -713,7 +713,7 @@ def ChangeSourceOwnership():
 def ChangeDestOwnership(destination):
     ChownDests = GetDeployParam("chown_dest")
     
-    if (GetVerboseLevel() > 0): print "\tChanging ownership on destination..."
+    if (GetVerboseLevel() > 0 and len(ChownDests) > 0): print "\tChanging ownership on destination..."
     
     #if (GetVerboseLevel() > 0 and len(ChownDests) > 0):
         #print "Changing destination ownership on {0} entries.".format(len(ChownDests))
@@ -731,7 +731,7 @@ def ChangeDestOwnership(destination):
 def ChangeSourcePermission():
     ChmodSources = GetDeployParam("chmod_source")
     
-    if (GetVerboseLevel() > 0): print "\tChanging permission on source..."
+    if (GetVerboseLevel() > 0 and len(ChmodSources) > 0): print "\tChanging permission on source..."
 
     for chmodsource in ChmodSources:
         if (len(chmodsource) > 1):
@@ -755,7 +755,7 @@ def ChangeDestPermission(destination):
 
 
 def MatchServerName(HostName, ServerName):
-    TmpHostName = HostName.lower();
+    TmpHostName = HostName.lower()
     if (TmpHostName == 'all'): return True
     if (TmpHostName == "localhost" or TmpHostName == "127.0.0.1"): TmpHostName = g_HostName
     return ServerName.lower().startswith(TmpHostName)
@@ -767,7 +767,7 @@ def DeployManualCopy(destination):
     ManualCopyCmds = GetDeployParam("manualcopy")
     ServerName = ExtractServerName(destination)
     
-    DestServer = ServerName;
+    DestServer = ServerName
     if (DestServer and not DestServer.endswith(':')): DestServer += ':'
     
     for manualcopycmd in ManualCopyCmds:
@@ -1203,7 +1203,7 @@ def RunDeployFile(deployValue):
     
     deployName = TmpSplit[0].strip().lower()
     
-    if (len(g_DeployName) > 0 and g_DeployName != deployName):
+    if (len(g_DeployName) > 0 and g_DeployName != deployName and g_DeployName != "all"):
         if (GetVerboseLevel() > 0): print "Skipping deployment '{0}'...".format(deployName)
         return True
     
@@ -1217,7 +1217,7 @@ def RunDeployFile(deployValue):
         g_ErrorCount += 1 
         return False
     
-    (deployPath, filename) = os.path.split(deployFile);
+    (deployPath, filename) = os.path.split(deployFile)
     if (not deployPath.endswith('/')): deployPath += '/'
     
     deployFile = os.path.realpath(deployFile)
@@ -1225,8 +1225,8 @@ def RunDeployFile(deployValue):
     
     print "Trying to run deployment '{0}' from file '{1}' in path '{2}'...".format(deployName, deployFile, deployPath)
     
-    DeployCmd = [ os.path.realpath(__file__) ];
-    DeployCmd.extend(sys.argv[1:]);
+    DeployCmd = [ os.path.realpath(__file__) ]
+    DeployCmd.extend(sys.argv[1:])
     
     if (len(g_DeployName) > 0):
     	index = DeployCmd.index(g_DeployName)
@@ -1248,10 +1248,10 @@ def RunDeployFile(deployValue):
         index = DeployCmd.index('--source')
         del DeployCmd[index:index+2]
         
-    DeployCmd.append('-f');
-    DeployCmd.append(deployFile);
-    # DeployCmd.append('-s');
-    # DeployCmd.append(deployPath);
+    DeployCmd.append('-f')
+    DeployCmd.append(deployFile)
+    # DeployCmd.append('-s')
+    # DeployCmd.append(deployPath)
     
     CurrentPath = os.getcwd()
     os.chdir(deployPath)
@@ -1271,24 +1271,84 @@ def RunDeployFile(deployValue):
 def DoNamedDeployFile():
 	global g_ErrorCount
 	global g_WarningCount
-    
+	
 	AllDeployFiles = GetDeployParam("deployfile")
-
+	
 	if (len(AllDeployFiles) == 0 or g_DeployName == ""):
 		print "Error: No deployment destinations specified!"
 		g_ErrorCount += 1
 		return False
-    
+	
 	for deployfile in AllDeployFiles:
 		if (len(deployfile) > 1):
 			RunDeployFile(deployfile[1])
-    
-	return True;
 	
+	return True
+
+
+def DoNamedDestDeploys():
+    global g_ErrorCount
+    global g_WarningCount
+    global g_DeployCount
+    global g_DeployDestCount
+    
+    CurrentPath = os.getcwd()
+    os.chdir(g_SourcePath)
+    
+    if (not ChangeSourceOwnership()):
+        DisplayError("", "Error changing ownership of source files...aborting deployment!")
+        os.chdir(CurrentPath)
+        return False
+    
+    if (not ChangeSourcePermission()):
+        DisplayError("", "Error changing permissions of source files...aborting deployment!")
+        os.chdir(CurrentPath)
+        return False
+    
+    os.chdir(CurrentPath)
+    
+    AllDests = GetDeployParam("destname")
+    
+    if (len(AllDests) == 0):
+        print "Error: No deployment named destinations specified!"
+        g_ErrorCount += 1
+        return False
+    
+    for destination in AllDests:
+        if (len(destination) > 1):
+            split = re.match('\[([a-zA-Z0-9_]+)\](.*)', destination[1])
+            if (split == None or split.group(1) == None or split.group(2) == None):
+                print "Error: Invalid destname format '{0}' found!".format(destination[1])
+                continue
+            
+            destName = split.group(1)
+            destPath = split.group(2)
+            
+            if (destName != g_DeployName and g_DeployName != "all"):
+                continue
+            
+            if (IsStaged()):
+                Result = DoOneDeployStaged(destPath)
+            else:
+                Result = DoOneDeploy(destPath)
+             
+            if (not Result): return False
+    
+    if (IsLocalOnly() and g_DeployCount == 0):
+        print "Warning: No deployment occurred as localhost was not found in deploy file '{0}'!".format(g_InputOptions.deployfile)
+        g_WarningCount += 1
+    elif (IsServerOnly() and g_DeployCount == 0):
+        print "Warning: No deployment occurred as {1} was not found in deploy file '{0}'!".format(g_InputOptions.deployfile, g_InputOptions.serveronly)
+        g_WarningCount += 1
+   
+    return True
+
 
 def DoDeploy():
     global g_ErrorCount
     global g_WarningCount
+    global g_DeployCount
+    global g_DeployDestCount
     
     CurrentPath = os.getcwd()
     os.chdir(g_SourcePath)
@@ -1325,7 +1385,7 @@ def DoDeploy():
                 Result = DoOneDeploy(destination[1])
             if (not Result): return False
     
-    if (IsRunDeployFiles()):
+    if (IsRunDeployFiles() or g_DeployName == "all"):
 	    for deployfile in AllDeployFiles:
 	        if (len(deployfile) > 1):
 	            RunDeployFile(deployfile[1])
@@ -1350,7 +1410,7 @@ LoadDeployFile(g_InputOptions.deployfile)
 
 if (len(g_InputArgs)) > 0:
     g_DeployName = g_InputArgs[0].lower()
-    if (GetVerboseLevel() > 0): print "Running deployment just for '{0}'...".format(g_DeployName)
+    if (GetVerboseLevel() > 0): print "Running deployment for just dests/deploys named '{0}'...".format(g_DeployName)
 
 if (GetVerboseLevel()):
     print "Local hostname is '{0}'".format(GetHostName())
@@ -1366,14 +1426,20 @@ g_RevisionNumber = GetRevisionNumber()
 
 if (g_DeployName == ""):
 	DoDeploy()
+elif (g_DeployName == "all"):
+	if (GetVerboseLevel() > 0): print "Running deployment for all dests/deploys..."
+	DoDeploy()
+	DoNamedDestDeploys()
 else:
-	DoNamedDeployFile()
-	CloseDatabase()
-	exit()
+	DoNamedDestDeploys()
+	# DoNamedDeployFile()
 
 CloseDatabase()
 
-if (g_ErrorCount == 0):
+if (g_DeployFileCount > 0 and g_DeployCount == 0):
+    print "SUCCESS: Deployed {1} files1".format(g_DeployFileCount)
+    exit(0)
+elif (g_ErrorCount == 0):
     print "SUCCESS: Deployed to {2} destinations with {0} errors and {1} warnings!".format(g_ErrorCount, g_WarningCount, g_DeployDestCount)
     exit(0)
 else:

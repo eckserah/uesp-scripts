@@ -122,6 +122,19 @@ dest = /home/uesp/scripts/
 dest = files1.uesp.net:/dev/null
 
 #
+# destname = [name]servername:/path
+#
+#   Defines named destinations that will only be run if specifically called for at  
+#   the command line with the format:
+#
+#       uespdeploy name
+#
+#   Note that "all" is a special name which matches all named destinations. 
+#
+destname = [dev]/home/uesp/dev/www/
+destname = [backup]backup1.uesp.net:/home/backup/
+
+#
 # chown_source = chown params 
 #	This command simply takes the same parameters as the 'chown' shell command to
 #	change the ownership of files/directories in the source path before deployment.
@@ -230,6 +243,8 @@ addline = LocalSettings.php : require_once( "$IP/extensions/Something/Something.
 #				uespdeploy test
 #
 #	Then only the second deployfile entry named 'test' will be run.
+#
+# Note that "all" is a special name which matches all named deployments.
 #
 deployfile = wiki:/wiki/
 deployfile = test:/debug/debug.deploy
