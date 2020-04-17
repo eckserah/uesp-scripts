@@ -1,19 +1,19 @@
 <?php
 /*
- * Very basic script that takes the output from uesp-squidlogpagecounts and saves them in the UESP wiki database for display.
+ * Very basic script that takes the output from uesp-varnishlogpagecounts and saves them in the UESP wiki database for display.
  */
 
 require_once("/home/uesp/secrets/wiki.secrets");
 
 
-class CSaveUespSquidPageCounts
+class CSaveUespVarnishPageCounts
 {
-	public $INPUTFILE = "/home/uesp/pagecounts/squidpagecounts.txt";
-	public $TIMEFILE = "/home/uesp/pagecounts/squidpagetime.txt";
-	public $SQUIDLOG = "/var/log/squid/access.log";
+	public $INPUTFILE = "/home/uesp/pagecounts/varnishpagecounts.txt";
+	public $TIMEFILE = "/home/uesp/pagecounts/varnishpagetime.txt";
+	public $VARNISHLOG = "/var/log/varnish/access.log";
 	
-		/* Estimate the number of lines to go back in the squid log to get at least the last 1 hour of data */ 
-	public $SQUIDLOG_NUMLINES = 1000000;
+		/* Estimate the number of lines to go back in the varnish log to get at least the last several hours of data */ 
+	public $VARNISHLOG_NUMLINES = 1000000;
 	
 	public $pageData = array();
 	public $savedPageCount = 0;
@@ -31,7 +31,7 @@ class CSaveUespSquidPageCounts
 	
 	public function ReportError($msg)
 	{
-		//error_log("SaveUespSquidPageCounts: $msg");
+		//error_log("SaveUespVarnishPageCounts: $msg");
 		print("$msg\n");
 		return false;
 	}
@@ -51,13 +51,13 @@ class CSaveUespSquidPageCounts
 	}
 	
 	
-	public function ParseSquidLog()
+	public function ParseVarnishLog()
 	{
 		$startTime = microtime(true);
-		//$output = shell_exec("tail -n {$this->SQUIDLOG_NUMLINES} $this->SQUIDLOG");
+		//$output = shell_exec("tail -n {$this->VARNISHLOG_NUMLINES} $this->VARNISHLOG");
 		//$lines = explode("\n", $output);
 		$lines = array();
-		exec("tail -n {$this->SQUIDLOG_NUMLINES} $this->SQUIDLOG", $lines);
+		exec("tail -n {$this->VARNISHLOG_NUMLINES} $this->VARNISHLOG", $lines);
 		$count = count($lines);
 		
 		$diffTime = intval((microtime(true) - $startTime)/1000);
@@ -174,6 +174,6 @@ class CSaveUespSquidPageCounts
 };
 
 
-$g_saveUespSquidPageCounts = new CSaveUespSquidPageCounts();
-$g_saveUespSquidPageCounts->DoSave();
-//$g_saveUespSquidPageCounts->ParseSquidLog();
+$g_saveUespVarnishPageCounts = new CSaveUespVarnishPageCounts();
+$g_saveUespVarnishPageCounts->DoSave();
+//$g_saveUespVarnishPageCounts->ParseVarnishLog();
