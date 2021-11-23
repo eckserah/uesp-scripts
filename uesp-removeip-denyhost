@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DENYHOST_SERVICE="/etc/init.d/denyhosts"
-DENYHOST_PATH="/usr/share/denyhosts"
+DENYHOST_PATH="/var/lib/denyhosts"
 HOSTS_DENY="/etc/hosts.deny"
 
 function removeipfile() {
@@ -38,11 +38,11 @@ function removeip() {
         fi
 
 	removeipfile $HOSTS_DENY $ipaddress
-	removeipfile "$DENYHOST_PATH/data/hosts" $ipaddress
-	removeipfile "$DENYHOST_PATH/data/hosts-restricted" $ipaddress
-	removeipfile "$DENYHOST_PATH/data/hosts-root" $ipaddress
-	removeipfile "$DENYHOST_PATH/data/hosts-valid" $ipaddress
-	removeipfile "$DENYHOST_PATH/data/users-hosts" $ipaddress
+	removeipfile "$DENYHOST_PATH/hosts" $ipaddress
+	removeipfile "$DENYHOST_PATH/hosts-restricted" $ipaddress
+	removeipfile "$DENYHOST_PATH/hosts-root" $ipaddress
+	removeipfile "$DENYHOST_PATH/hosts-valid" $ipaddress
+	removeipfile "$DENYHOST_PATH/users-hosts" $ipaddress
 	
 }
 

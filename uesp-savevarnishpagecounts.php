@@ -45,7 +45,7 @@ class CSaveUespVarnishPageCounts
 		
 		$this->db = new mysqli($UESP_SERVER_DB1, $uespWikiUser, $uespWikiPW, $uespWikiDB);
 		if ($this->db->connect_error) return $this->ReportError("Could not connect to wiki database!");
-
+		
 		$this->dbWriteInitialized = true;
 		return true;
 	}
