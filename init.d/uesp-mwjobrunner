@@ -11,7 +11,7 @@ JOBRUNNER_PID="/var/run/uesp-mwjobrunner.pid"
 
 case "$1" in 
 start)
-   runuser -l $JOBRUNNER_USER -c "$JOBRUNNER_BIN >>$JOBRUNNER_LOG 2>&1" &
+   runuser -l $JOBRUNNER_USER -c "exec $JOBRUNNER_BIN >>$JOBRUNNER_LOG 2>&1" &
    echo $!>$JOBRUNNER_PID
    ;;
 stop)
