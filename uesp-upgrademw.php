@@ -11,6 +11,8 @@ class CUespUpgradeMW
 	public $inputVersion = "";
 	public $inputSrcWikiPath = "";
 	public $inputDestWikiPath = "";
+	public $realSrcWikiPath = "";
+	public $realDestWikiPath = "";
 	
 	
 	public $FILES_TO_COPY = [
@@ -68,10 +70,12 @@ class CUespUpgradeMW
 			elseif ($argCount == 1)
 			{
 				$this->inputSrcWikiPath = $arg;
+				$this->realSrcWikiPath = realpath($arg);
 			}
 			elseif ($argCount == 2)
 			{
 				$this->inputDestWikiPath = $arg;
+				$this->realDestWikiPath = realpath($arg);
 			}
 			else
 			{
@@ -136,15 +140,16 @@ class CUespUpgradeMW
 	{
 		print("\t$extName: Copying from source wiki\n");
 		
-		$src  = $this->inputSrcWikiPath  . "/extensions/" . $extName;
-		$dest = $this->inputDestWikiPath . "/extensions/" . $extName;
+		$src  = $this->realSrcWikiPath  . "/extensions/" . $extName;
+		$dest = $this->realDestWikiPath . "/extensions/" . $extName;
+		$cmd = "cp -Rp \"$src\" \"$dest\"";
 		
-		$result = exec("cp -Rp \"$src\" \"$dest\"", $output, $resultCode);
+		$result = exec($cmd, $output, $resultCode);
 		
 		if ($result === false || $resultCode != 0) 
 		{
 			$output = implode("\n", $output);
-			print("\t\tError: Failed to copy extension!\n$output");
+			print("\t\tError: Failed to copy extension ($resultCode)!\n$output");
 			return false;
 		}
 		
@@ -159,17 +164,17 @@ class CUespUpgradeMW
 		global $UESP_EXT_OTHER;
 		global $UESP_EXT_NONE;
 		
-		if ($extType == $UESP_EXT_NONE) 
+		if ($extType == $UESP_EXT_NONE)
 		{
 			return $this->CopyExtension($extName);
 		}
 		
-		if ($extType == $UESP_EXT_DEFAULT) 
+		if ($extType == $UESP_EXT_DEFAULT)
 		{
 			return true;
 		}
 		
-		if ($extType == $UESP_EXT_OTHER) 
+		if ($extType == $UESP_EXT_OTHER)
 		{
 			print("\t$extName: WARNING: Must be upgraded manually!\n");
 			return $this->CopyExtension($extName);
