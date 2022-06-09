@@ -1,0 +1,260 @@
+#!/bin/sh
+
+set -e
+
+COMMAND="$1"
+DOMAIN="$2"
+YEAR=`date +%Y`
+PREVYEAR="$((YEAR-1))"
+CERTS_PATH="/root/certs/$YEAR"
+TEMP_PATH="/home/dave/certstmp"
+
+#------------------------------------------------------------------------------
+
+function createsslkey() {
+	ssldomain="$1"
+	filename="$2"
+	
+	if [ "$filename" = "" ];
+	then
+		filename=`echo "$ssldomain" | sed -e 's/\(\*\.\)\?\([a-zA-Z0-9_]\+\)\.\([a-zA-Z0-9_]\+\)/\2/g' `
+	fi
+	
+	echo "Creating SSL key for domain '$ssldomain' to file '$CERTS_PATH/$filename.key'..."
+	
+	mkdir -p "$CERTS_PATH/"
+	
+	pushd "$CERTS_PATH/" >> /dev/null
+	
+	openssl req -new -newkey rsa:2048 -nodes -keyout "$filename.key" -out "$filename.csr" -subj /C=CA/ST=Ontario/L=Toronto/O=Emergent\ Game\ Design\ Inc./OU=/CN=$DOMAIN
+	
+	popd >> /dev/null
+}
+
+
+function makepem() {
+	filename="$1"
+	
+	echo "Making '$CERTS_PATH/$filename.pem' from key and crt files..."
+	
+	cp -f "$CERTS_PATH/$filename.key" "$CERTS_PATH/$filename.pem"
+	cat "$CERTS_PATH/$filename.crt" >> "$CERTS_PATH/$filename.pem"
+}
+
+
+function copytmp() {
+	filename="$1"
+	
+	echo "Copying files '$CERTS_PATH/$filename.*' to '$TEMP_PATH/'..."
+	
+	mkdir -p "$TEMP_PATH/"
+	cp "$CERTS_PATH/$filename".* "$TEMP_PATH/"
+	
+	chown -R dave:uespadmin "$TEMP_PATH"
+	chmod g+rw -R "$TEMP_PATH"
+}
+
+
+function deletetmp() {
+	
+	echo "Deleting all files in: '$TEMP_PATH'..."
+	
+	rm -f "$TEMP_PATH"/*
+}
+
+function copyfrom() {
+	server="$1.uesp.net"
+	thisserver=`hostname`
+	
+	if [ "$server" = "$thisserver" ];
+	then
+		echo "Error: Can't copy files as '$server' is the localhost!"
+		exit 3
+	fi 
+	
+	echo "Copying certificate files from: '$server:$TEMP_PATH/' to '$TEMP_PATH/'..."
+	
+	rsync -avz "dave@$server:$TEMP_PATH/" "$TEMP_PATH/"
+}
+
+
+function movebackup() {
+	src="$1"
+	dest="$1.$PREVYEAR"
+	
+	if [[ ! -f "$src" ]]; then
+		echo "Warning: Old file '$src' does not exist!"
+		return
+	fi
+	
+	if [[ -f "$dest" ]]; then
+		echo "Warning: File '$dest' already exists (not overwriting)!"
+		return
+	fi
+	
+	mv "$src" "$dest"
+}
+
+
+function setupapache() {
+	filename="$1"
+	
+	CERTPATH="/etc/ssl/certs"
+	KEYPATH="/etc/ssl/keys"
+	
+	echo "Trying to copy new keys to '$CERTPATH'..."
+	
+	movebackup "$CERTPATH/$filename.crt"
+	movebackup "$CERTPATH/$filename.ca-bundle"
+	movebackup "$KEYPATH/$filename.key"
+	
+	cp "$TEMP_PATH/$filename.crt" "$CERTPATH/$filename.crt"
+	cp "$TEMP_PATH/$filename.ca-bundle" "$CERTPATH/$filename.ca-bundle"
+	cp "$TEMP_PATH/$filename.key" "$KEYPATH/$filename.key"
+	
+	chown root:root "$CERTPATH/$filename.crt"
+	chown root:root "$CERTPATH/$filename.ca-bundle"
+	chown root:root "$KEYPATH/$filename.key"
+	chmod a+r "$CERTPATH/$filename.crt"
+	chmod a+r "$CERTPATH/$filename.ca-bundle"
+	chmod g-rwx,o-rwx "$KEYPATH/$filename.key"
+	
+	echo "Done....you should do: 'apachectl restart' to update."
+}
+
+
+function setuplighttpd() {
+	filename="$1"
+	
+	CERTPATH="/etc/lighttpd/certs"
+	
+	echo "Trying to copy new keys to '$CERTPATH'..."
+	
+	movebackup "$CERTPATH/$filename.pem"
+	movebackup "$CERTPATH/$filename.ca-bundle"
+	
+	cp "$TEMP_PATH/$filename.pem" "$CERTPATH/$filename.pem"
+	cp "$TEMP_PATH/$filename.ca-bundle" "$CERTPATH/$filename.ca-bundle"
+	
+	chown root:root "$CERTPATH/$filename.pem"
+	chown root:root "$CERTPATH/$filename.ca-bundle"
+	chmod g-rwx,o-rwx "$CERTPATH/$filename.pem"
+	chmod a+r "$CERTPATH/$filename.ca-bundle"
+	
+	echo "Done....you should do: 'service lighttpd restart' to update."
+}
+
+
+function setupnginx() {
+	filename="$1"
+	
+	CERTPATH="/etc/nginx/ssl"
+	
+	echo "Trying to copy new keys to '$CERTPATH'..."
+	
+	movebackup "$CERTPATH/$filename.crt"
+	movebackup "$CERTPATH/$filename.ca-bundle"
+	movebackup "$CERTPATH/$filename.key"
+	
+	cp "$TEMP_PATH/$filename.crt" "$CERTPATH/$filename.crt"
+	cp "$TEMP_PATH/$filename.ca-bundle" "$CERTPATH/$filename.ca-bundle"
+	cp "$TEMP_PATH/$filename.key" "$CERTPATH/$filename.key"
+	
+	chown root:root "$CERTPATH/$filename.crt"
+	chown root:root "$CERTPATH/$filename.ca-bundle"
+	chown root:root "$CERTPATH/$filename.key"
+	chmod a+r "$CERTPATH/$filename.crt"
+	chmod a+r "$CERTPATH/$filename.ca-bundle"
+	chmod g-rwx,o-rwx "$CERTPATH/$filename.key"
+	
+	echo "Done....you should do: 'service nginx restart' to update."
+}
+
+
+function showhelp() {
+	echo -e "\tcreate [domain] [filename]"
+	echo -e "\tmakepem [filename]"
+	echo -e "\tcopytmp [filename]"
+	echo -e "\tdeltmp"
+	echo -e "\tcopyfrom [server]"
+	echo -e "\tapache [filename]"
+	echo -e "\tlighttpd [filename]"
+	echo -e "\tnginx [filename]"
+	echo -e "\thelp"
+}
+
+#------------------------------------------------------------------------------
+
+if [ "$COMMAND" = "" ];
+then
+	echo "Error: No command given. Expecting one of:"
+	showhelp
+	exit 2
+elif [ "$COMMAND" = "help" ];
+then
+	echo "Valid commands include: "
+	showhelp
+	exit 0
+fi
+
+NEEDSDOMAIN=1
+
+if [ "$COMMAND" = "deltmp" ];
+then
+	NEEDSDOMAIN=0
+fi
+
+if [ "$NEEDSDOMAIN" = "1" ];
+then
+	if [ "$DOMAIN" = "" ];
+	then
+		echo -n "Enter domain/filename to use for command '$COMMAND': "
+		read DOMAIN
+		
+		if [ "$DOMAIN" = "" ];
+		then
+			echo "Error: No domain given!"
+			exit 1
+		fi
+	else
+		echo "Using '$DOMAIN' as domain/filename for commands..."
+	fi
+	
+fi
+
+
+if [ "$COMMAND" = "create" ];
+then
+	createsslkey "$DOMAIN" "$3"
+	exit 0
+elif [ "$COMMAND" = "copytmp" ];
+then
+	copytmp "$DOMAIN"
+	exit 0
+elif [ "$COMMAND" = "deltmp" ];
+then
+	deletetmp "$DOMAIN"
+	exit 0
+elif [ "$COMMAND" = "makepem" ];
+then
+	makepem "$DOMAIN"
+	exit 0
+elif [ "$COMMAND" = "copyfrom" ];
+then
+	copyfrom "$DOMAIN"
+	exit 0
+elif [ "$COMMAND" = "apache" ];
+then
+	setupapache "$DOMAIN"
+	exit 0
+elif [ "$COMMAND" = "lighttpd" ];
+then
+	setuplighttpd "$DOMAIN"
+	exit 0
+elif [ "$COMMAND" = "nginx" ];
+then
+	setupnginx "$DOMAIN"
+	exit 0
+else
+	echo "Error: Unknown command '$COMMAND'!"
+fi
