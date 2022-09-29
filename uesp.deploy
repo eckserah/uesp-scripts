@@ -12,6 +12,7 @@ verbosity = 0
 
 ignore = *.deploy
 ignore = .hg*
+ignore = .git*
 
 dest = content1.uesp.net:/home/uesp/scripts/
 dest = content2.uesp.net:/home/uesp/scripts/
