@@ -23,13 +23,13 @@ dest = db2.uesp.net:/home/uesp/scripts/
 dest = squid1.uesp.net:/home/uesp/scripts/
 dest = backup1.uesp.net:/home/uesp/scripts/
 
-chown_source = :uespadmin -R *
+# chown_source = :uespadmin -R *
 
 	# Set the ownership of the destination directory 
-chown_dest = :uespadmin {dest}
+# chown_dest = :uespadmin {dest}
 
-chmod_dest = g+rw {dest}/*
-chmod_dest = a+r {dest}/*
+# chmod_dest = g+rw {dest}/*
+# chmod_dest = a+r {dest}/*
 
 delete_dest = uespdeploy.py
 delete_dest = uespdeploylog.py

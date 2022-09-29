@@ -39,6 +39,7 @@ function makepem() {
 	
 	cp -f "$CERTS_PATH/$filename.key" "$CERTS_PATH/$filename.pem"
 	cat "$CERTS_PATH/$filename.crt" >> "$CERTS_PATH/$filename.pem"
+	cat "$CERTS_PATH/$filename.ca-bundle" >> "$CERTS_PATH/$filename.pem"
 }
 
 
