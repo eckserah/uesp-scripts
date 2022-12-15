@@ -44,6 +44,11 @@ while true; do
 	php71 $RJ --type="webVideoTranscode" --maxjobs=5 --memory-limit=max --uesplang=ar
 	php71 $RJ --maxjobs=10 --memory-limit=max --uesplang=ar
 	
+	php71 $RJ --type="enotifNotify" --memory-limit=max --uesplang=fr
+	php71 $RJ --type="htmlCacheUpdate" --maxjobs=50 --memory-limit=max --uesplang=fr
+	php71 $RJ --type="webVideoTranscode" --maxjobs=5 --memory-limit=max --uesplang=fr
+	php71 $RJ --maxjobs=10 --memory-limit=max --uesplang=fr
+	
 		# Wait some seconds to let the CPU do other things, like handling web requests, etc
 	echo Waiting for 1 seconds...
 	sleep 1
