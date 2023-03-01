@@ -158,6 +158,7 @@ function setupnginx() {
 	movebackup "$CERTPATH/$filename.key"
 	
 	cp "$TEMP_PATH/$filename.crt" "$CERTPATH/$filename.crt"
+	cat "$TEMP_PATH/$filename.ca-bundle" >> "$CERTPATH/$filename.crt"
 	cp "$TEMP_PATH/$filename.ca-bundle" "$CERTPATH/$filename.ca-bundle"
 	cp "$TEMP_PATH/$filename.key" "$CERTPATH/$filename.key"
 	
