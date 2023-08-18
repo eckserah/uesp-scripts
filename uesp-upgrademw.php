@@ -20,6 +20,7 @@ class CUespUpgradeMW
 			"config",
 			"skins/UespMonoBook",
 			"skins/UespVector",
+			"skins/DarkVector",
 	];
 	
 	
@@ -163,6 +164,12 @@ class CUespUpgradeMW
 		global $UESP_EXT_UPGRADE;
 		global $UESP_EXT_OTHER;
 		global $UESP_EXT_NONE;
+		global $UESP_EXT_IGNORE;
+		
+		if ($extType == $UESP_EXT_IGNORE)
+		{
+			return true;
+		}
 		
 		if ($extType == $UESP_EXT_NONE)
 		{
@@ -176,7 +183,7 @@ class CUespUpgradeMW
 		
 		if ($extType == $UESP_EXT_OTHER)
 		{
-			print("\t$extName: WARNING: Must be upgraded manually!\n");
+			print("\t\t$extName: WARNING: Must be upgraded manually!\n");
 			return $this->CopyExtension($extName);
 		}
 		
@@ -219,6 +226,56 @@ class CUespUpgradeMW
 	}
 	
 	
+	protected function FindMissingExtensions($extPath)
+	{
+		global $UESP_EXTENSION_INFO;
+		
+		$dir = new DirectoryIterator($extPath);
+		$dirs = [];
+		$foundDirs = [];
+		$displayWarning = false;
+		
+		foreach ($dir as $fileInfo)
+		{
+			if ($fileInfo->isDir() && !$fileInfo->isDot()) 
+			{
+				$dirs[] = $fileInfo->getFilename();
+				$foundDirs[$fileInfo->getFilename()] = true;
+			}
+		}
+		
+		foreach ($dirs as $dir)
+		{
+			$dirInfo = $UESP_EXTENSION_INFO[$dir];
+			
+			if ($dirInfo === null)
+			{
+				print("\tMissing '$dir' extension in UESP_EXTENSION_INFO data!\n");
+				$displayWarning = true;
+			}
+		}
+		
+		foreach ($UESP_EXTENSION_INFO as $dir => $dirData)
+		{
+			$dirInfo = $foundDirs[$dir];
+			
+			if ($dirInfo === null)
+			{
+				print("\tExtension '$dir' not found in source wiki path!\n");
+				$displayWarning = true;
+			}
+		}
+		
+		if ($displayWarning)
+		{
+			$input = readline("Extension issues found! Enter 'dev' if you wish to proceed:");
+			if ($input != "dev") exit();
+		}
+		
+		return true;
+	}
+	
+	
 	protected function DoUpgrade()
 	{
 		global $UESP_EXTENSION_INFO;
@@ -227,6 +284,8 @@ class CUespUpgradeMW
 		
 		$cwd = getcwd();
 		$extDir = $this->inputDestWikiPath . "/extensions";
+		
+		$this->FindMissingExtensions($this->inputSrcWikiPath . "/extensions");
 		
 		if (!chdir($extDir)) return $this->ReportError("Failed to change to '$extDir'!");
 		
