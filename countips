@@ -1,4 +1,4 @@
 #!/bin/sh
   
-netstat -an | egrep "^tcp|^udp" | awk '{print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
+netstat -an | egrep "^tcp|^udp" | awk '{print $5}' | egrep ":[0-9]+$" | cut -d: -f1 | sort | uniq -c | sort -n
 
