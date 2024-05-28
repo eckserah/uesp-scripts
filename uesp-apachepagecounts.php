@@ -12,7 +12,8 @@ class CApacheLogParse
 	public $ipAddresses = [];
 	public $startTime = 0;
 	public $startDate = "";
-	public $minCount = 5;
+	public $minCount = 5 ;
+	
 	
 	public function __construct()
 	{
@@ -67,6 +68,7 @@ class CApacheLogParse
 		
 		arsort($this->ipAddresses);
 	}
+	
 	
 	public function OutputResults()
 	{
