@@ -3,6 +3,7 @@
 # mediawiki-extensions-Disambiguator-REL1_24
 
 BASESITE="https://github.com/wikimedia/mediawiki-extensions-"
+BASESITE="https://codeload.github.com/wikimedia/mediawiki-extensions-"
 EXTNAME="$1"
 EXTVERSION="$2"
 OLDPATH="mediawiki-extensions-$EXTNAME-REL$EXTVERSION"
@@ -18,6 +19,7 @@ if [ -z "$EXTVERSION" ]; then
 fi
 
 URL="$BASESITE$EXTNAME/archive/REL$EXTVERSION.zip"
+URL="$BASESITE$EXTNAME/zip/refs/heads/REL$EXTVERSION"
 OUTPUTFILE="$EXTNAME.zip"
 
 echo "Attempting to download MediaWiki extension $EXTNAME v$EXTVERSION..."
