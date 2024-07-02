@@ -110,8 +110,6 @@ function banip() {
                 return 1
         fi
 
-        promptuser "ban" $1
-
         echo "Banning '$1'...."
         iptables -A INPUT -s "$1" -j DROP
 
@@ -128,8 +126,6 @@ function unbanip() {
         if checkip $1 ; then
                 return 1
         fi
-
-        promptuser "unban" $1
 
         if ! findbannedip $1 ; then
                 exit 1

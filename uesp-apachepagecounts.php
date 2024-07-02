@@ -6,13 +6,13 @@ class CApacheLogParse
 {
 	
 	public $LOGFILE = "/var/log/httpd/access_log";
-	public $LINECOUNT = 10000;
+	public $LINECOUNT = 100000;
 	
 	public $lines = [];
 	public $ipAddresses = [];
 	public $startTime = 0;
 	public $startDate = "";
-	public $minCount = 5 ;
+	public $minCount = 5;
 	
 	
 	public function __construct()

@@ -19,8 +19,8 @@ dest = content2.uesp.net:/home/uesp/scripts/
 dest = content3.uesp.net:/home/uesp/scripts/
 dest = files1.uesp.net:/home/uesp/scripts/
 dest = search1.uesp.net:/home/uesp/scripts/
-dest = db1.uesp.net:/home/uesp/scripts/
-dest = db2.uesp.net:/home/uesp/scripts/
+# dest = db1.uesp.net:/home/uesp/scripts/
+# dest = db2.uesp.net:/home/uesp/scripts/
 dest = squid1.uesp.net:/home/uesp/scripts/
 dest = backup1.uesp.net:/home/uesp/scripts/
 
