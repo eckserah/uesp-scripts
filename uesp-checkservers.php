@@ -24,7 +24,9 @@ class CUespCheckServers
 	
 	public function ReportError($msg)
 	{
+		print("********************************************\n");
 		print($msg . "\n");
+		print("********************************************\n");
 	}
 	
 	
@@ -170,10 +172,9 @@ class CUespCheckServers
 	
 	public function Run()
 	{
-		//$UESP_SERVER_SEARCH = $UESP_SERVER_CONTENT2;
-		//$UESP_SERVER_MEMCACHED = $UESP_SERVER_CONTENT1;
 		$this->CheckAllServers();
 		
+		//$this->ReportError("Test Error");
 	}
 };
 
