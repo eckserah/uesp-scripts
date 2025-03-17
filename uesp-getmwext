@@ -2,10 +2,11 @@
 # https://github.com/wikimedia/mediawiki-extensions-Disambiguator/archive/REL1_24.zip
 # mediawiki-extensions-Disambiguator-REL1_24
 
-BASESITE="https://github.com/wikimedia/mediawiki-extensions-"
-BASESITE="https://codeload.github.com/wikimedia/mediawiki-extensions-"
+#BASESITE="https://github.com/wikimedia/mediawiki-extensions-"
+#BASESITE="https://codeload.github.com/eckserah/mediawiki-extensions-"
 EXTNAME="$1"
 EXTVERSION="$2"
+EXTSECONDARY="$3"
 OLDPATH="mediawiki-extensions-$EXTNAME-REL$EXTVERSION"
 
 if [ -z "$EXTNAME" ]; then
@@ -18,8 +19,20 @@ if [ -z "$EXTVERSION" ]; then
 	exit -2
 fi
 
-URL="$BASESITE$EXTNAME/archive/REL$EXTVERSION.zip"
-URL="$BASESITE$EXTNAME/zip/refs/heads/REL$EXTVERSION"
+if [ -z "$EXTSECONDARY" ]; then
+	BASESITE="https://codeload.github.com/wikimedia/mediawiki-extensions-"
+	URL="$BASESITE$EXTNAME/zip/refs/heads/REL$EXTVERSION"
+else
+	BASESITE="https://gerrit.wikimedia.org/r/plugins/gitiles/mediawiki/extensions/$EXTNAME"
+	COMMITURL="$BASESITE/+/refs/tags/REL$EXTVERSION"
+	ARCHCOMMIT=$(curl $COMMITURL | grep -oP '(?<=commit</th><td>).*(?=</td><td><span>\[<a href)')
+	if [ -z "$ARCHCOMMIT" ]; then
+		echo "ERROR: Unable to get commit from gerrit url ($COMMITURL) for tag REL$EXTVERSION"
+		exit -6
+	fi
+	URL="$BASESITE/+archive/$ARCHCOMMIT.tar.gz"
+fi
+
 OUTPUTFILE="$EXTNAME.zip"
 
 echo "Attempting to download MediaWiki extension $EXTNAME v$EXTVERSION..."

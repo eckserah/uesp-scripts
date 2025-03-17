@@ -100,6 +100,8 @@ class CUespUpgradeMW
 		global $UESP_EXT_UPGRADE;
 		global $UESP_EXT_OTHER;
 		global $UESP_EXT_NONE;
+		global $UESP_EXT_IGNORE;
+		global $UESP_EXT_SECONDARY;
 		
 		if ($this->inputVersion == "") return $this->ReportError("Missing required VERSION input!");
 		if ($this->inputSrcWikiPath == "") return $this->ReportError("Missing required SRCWIKIPATH input!");
@@ -165,6 +167,7 @@ class CUespUpgradeMW
 		global $UESP_EXT_OTHER;
 		global $UESP_EXT_NONE;
 		global $UESP_EXT_IGNORE;
+		global $UESP_EXT_SECONDARY;
 		
 		if ($extType == $UESP_EXT_IGNORE)
 		{
@@ -190,6 +193,12 @@ class CUespUpgradeMW
 		print("\t$extName: Upgrading...\n");
 		
 		$cmd = "uesp-getmwext \"$extName\" {$this->inputVersion}";
+		
+		if ($extType == $UESP_EXT_SECONDARY)
+		{
+			$cmd .= " 1";
+		}
+		
 		$result = exec($cmd, $output, $resultCode);
 		
 		if ($result === false || $resultCode != 0) 
