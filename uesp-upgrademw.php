@@ -18,9 +18,6 @@ class CUespUpgradeMW
 	public $FILES_TO_COPY = [
 			"LocalSettings.php",
 			"config",
-			"skins/UespMonoBook",
-			"skins/UespVector",
-			"skins/DarkVector",
 	];
 	
 	
@@ -96,6 +93,7 @@ class CUespUpgradeMW
 	{
 		global $UESP_UPGRADING_MW;
 		global $UESP_EXTENSION_INFO;
+		global $UESP_SKIN_INFO;
 		global $UESP_EXT_DEFAULT;
 		global $UESP_EXT_UPGRADE;
 		global $UESP_EXT_OTHER;
@@ -117,10 +115,13 @@ class CUespUpgradeMW
 		
 		include($file);
 		
-		if ($UESP_EXTENSION_INFO == NULL) return $this->ReportError("Missing global $$UESP_EXTENSION_INFO data from '$file'!");
+		if ($UESP_EXTENSION_INFO == NULL) return $this->ReportError("Missing global UESP_EXTENSION_INFO data from '$file'!");
+		if ($UESP_SKIN_INFO == NULL) return $this->ReportError("Missing global UESP_SKIN_INFO data from '$file'!");
 		
 		$count = count($UESP_EXTENSION_INFO);
 		print("\tLoaded info for $count extensions from '$file'.\n");
+		$skincount = count($UESP_SKIN_INFO);
+		print("\tLoaded info for $skincount skins from '$file'.\n");
 		
 		return true;
 	}
@@ -152,7 +153,27 @@ class CUespUpgradeMW
 		if ($result === false || $resultCode != 0) 
 		{
 			$output = implode("\n", $output);
-			print("\t\tError: Failed to copy extension ($resultCode)!\n$output");
+			print("\t\tError: Failed to copy extension $extName ($resultCode)!\n$output");
+			return false;
+		}
+		
+		return true;
+	}
+	
+	protected function CopySkin($skinName)
+	{
+		print("\t$skinName: Copying from source wiki\n");
+		
+		$src  = $this->realSrcWikiPath  . "/skins/" . $skinName;
+		$dest = $this->realDestWikiPath . "/skins/" . $skinName;
+		$cmd = "cp -Rp \"$src\" \"$dest\"";
+		
+		$result = exec($cmd, $output, $resultCode);
+		
+		if ($result === false || $resultCode != 0) 
+		{
+			$output = implode("\n", $output);
+			print("\t\tError: Failed to copy skin $skinName ($resultCode)!\n$output");
 			return false;
 		}
 		
@@ -206,6 +227,53 @@ class CUespUpgradeMW
 			$output = implode("\n", $output);
 			print("\t\tError: Failed to upgrade extension! $output\n");
 			$this->CopyExtension($extName);
+			return false;
+		}
+		
+		return true;
+	}
+	
+	protected function UpgradeSkin($skinName, $skinType)
+	{
+		global $UESP_EXT_DEFAULT;
+		global $UESP_EXT_UPGRADE;
+		global $UESP_EXT_OTHER;
+		global $UESP_EXT_NONE;
+		global $UESP_EXT_IGNORE;
+		global $UESP_EXT_SECONDARY;
+		
+		if ($skinType == $UESP_EXT_IGNORE)
+		{
+			return true;
+		}
+		
+		if ($skinType == $UESP_EXT_NONE)
+		{
+			return $this->CopySkin($skinName);
+		}
+		
+		if ($skinType == $UESP_EXT_DEFAULT)
+		{
+			return true;
+		}
+		
+		if ($skinType == $UESP_EXT_OTHER)
+		{
+			print("\t\t$skinName: WARNING: Must be upgraded manually!\n");
+			return $this->CopySkin($skinName);
+		}
+		
+		print("\t$skinName: Upgrading...\n");
+		
+		$cmd = "uesp-getmwext \"$skinName\" {$this->inputVersion} 1";
+		
+		$result = exec($cmd, $output, $resultCode);
+		
+		if ($result === false || $resultCode != 0) 
+		{
+			$output = implode("\n", $output);
+			print("\t\tError: Failed to upgrade skin! $output\n");
+			$this->CopySkin($skinName);
 			return false;
 		}
 		
@@ -284,20 +352,83 @@ class CUespUpgradeMW
 		return true;
 	}
 	
+	protected function FindMissingSkins($extPath)
+	{
+		global $UESP_SKIN_INFO;
+		
+		$dir = new DirectoryIterator($extPath);
+		$dirs = [];
+		$foundDirs = [];
+		$displayWarning = false;
+		
+		foreach ($dir as $fileInfo)
+		{
+			if ($fileInfo->isDir() && !$fileInfo->isDot()) 
+			{
+				$dirs[] = $fileInfo->getFilename();
+				$foundDirs[$fileInfo->getFilename()] = true;
+			}
+		}
+		
+		foreach ($dirs as $dir)
+		{
+			$dirInfo = $UESP_SKIN_INFO[$dir];
+			
+			if ($dirInfo === null)
+			{
+				print("\tMissing '$dir' skin in UESP_SKIN_INFO data!\n");
+				$displayWarning = true;
+			}
+		}
+		
+		foreach ($UESP_SKIN_INFO as $dir => $dirData)
+		{
+			$dirInfo = $foundDirs[$dir];
+			
+			if ($dirInfo === null)
+			{
+				print("\tSkin '$dir' not found in source wiki path!\n");
+				$displayWarning = true;
+			}
+		}
+		
+		if ($displayWarning)
+		{
+			$input = readline("Skin issues found! Enter 'dev' if you wish to proceed:");
+			if ($input != "dev") exit();
+		}
+		
+		return true;
+	}
+	
 	
 	protected function DoUpgrade()
 	{
 		global $UESP_EXTENSION_INFO;
+		global $UESP_SKIN_INFO;
 		
 		$this->CopyFiles();
 		
 		$cwd = getcwd();
-		$extDir = $this->inputDestWikiPath . "/extensions";
+		// Check and upgrade skins
+		$skinDir = $this->inputDestWikiPath . "/skins";
+		$this->FindMissingSkins($this->inputSrcWikiPath . "/skins");
 		
+		if (!chdir($skinDir)) return $this->ReportError("Failed to change to '$skinDir'!");
+		print("\n\tAttempting to upgrade skins\n");
+		foreach ($UESP_SKIN_INFO as $skinName => $skinType)
+		{
+			$this->UpgradeSkin($skinName, $skinType);
+		}
+		
+		chdir($cwd);
+		
+		// Check and upgrade extensions
+		$extDir = $this->inputDestWikiPath . "/extensions";
 		$this->FindMissingExtensions($this->inputSrcWikiPath . "/extensions");
 		
 		if (!chdir($extDir)) return $this->ReportError("Failed to change to '$extDir'!");
-		
+		print("\n\tAttempting to upgrade extensions\n");
 		foreach ($UESP_EXTENSION_INFO as $extName => $extType)
 		{
 			$this->UpgradeExtension($extName, $extType);
