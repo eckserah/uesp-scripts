@@ -1,0 +1,15 @@
+#!/bin/sh	
+RUNDIR="$1"
+if [ -z $RUNDIR ]; then
+	RUNDIR=$(pwd)
+fi
+
+composerList=$(find $RUNDIR -name '*composer.json' -printf "%h\n")
+readarray -t composerListArr <<<"$composerList"
+
+for f in "${composerListArr[@]}"; do
+	if [ "$f" == "." ]; then
+		f = $(pwd)
+	fi
+	php71 /usr/bin/composer install --working-dir="$f" --no-dev
+done

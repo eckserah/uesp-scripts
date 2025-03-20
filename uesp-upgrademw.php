@@ -438,6 +438,23 @@ class CUespUpgradeMW
 		return true;
 	}
 	
+	protected function DoComposerUpdate()
+	{
+		$cmd = "uesp-updatecomposer \"".$this->inputDestWikiPath."\"";
+		print("\n\tUpdating Composer for wiki, extensions, and skins\n");
+		$result = exec($cmd, $output, $resultCode);
+		
+		if ($result === false || $resultCode != 0) 
+		{
+			$output = implode("\n", $output);
+			print("\t\tError: Failed to run composer updates! $output\n");
+			return false;
+		}
+		
+		return true;
+		
+	}
+	
 	
 	public function Upgrade()
 	{
@@ -445,6 +462,8 @@ class CUespUpgradeMW
 		if (!$this->PromptUser()) return $this->ReportError("Aborting upgrade!");;
 		
 		$this->DoUpgrade();
+		
+		$this->DoComposerUpdate();
 		
 		return true;
 	}
